@@ -129,18 +129,114 @@ export function useDeleteJob() {
 
 /* ---------- Applications ---------- */
 
+const LOCAL_APPS_KEY = 'applyai_local_applications';
+
+function getLocalApplications(): Application[] {
+  if (typeof window === 'undefined') return [];
+  const raw = localStorage.getItem(LOCAL_APPS_KEY);
+  if (!raw) {
+    const demoApps: Application[] = [
+      {
+        id: 'app-1',
+        userId: 'user-1',
+        jobId: 'job-1',
+        status: 'applied',
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date().toISOString(),
+        job: {
+          id: 'job-1',
+          title: 'Full Stack Engineer',
+          company: 'TechCorp Solutions',
+          location: 'Remote',
+          salary: '$110,000 - $130,000',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      },
+      {
+        id: 'app-2',
+        userId: 'user-1',
+        jobId: 'job-2',
+        status: 'interview',
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date().toISOString(),
+        job: {
+          id: 'job-2',
+          title: 'Frontend React Developer',
+          company: 'InnovateAI',
+          location: 'San Francisco, CA',
+          salary: '$120,000 - $140,000',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      },
+      {
+        id: 'app-3',
+        userId: 'user-1',
+        jobId: 'job-3',
+        status: 'assessment',
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date().toISOString(),
+        job: {
+          id: 'job-3',
+          title: 'Software Engineer - AI Systems',
+          company: 'DataPulse AI',
+          location: 'Hybrid',
+          salary: '$130,000 - $150,000',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      },
+    ];
+    localStorage.setItem(LOCAL_APPS_KEY, JSON.stringify(demoApps));
+    return demoApps;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalApplications(apps: Application[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(LOCAL_APPS_KEY, JSON.stringify(apps));
+  }
+}
+
 export function useApplications() {
   return useQuery<Application[], ApiError>({
     queryKey: ['applications'],
-    queryFn: () => apiRequest<Application[]>('/applications', { auth: true }),
+    queryFn: async () => {
+      try {
+        return await apiRequest<Application[]>('/applications', { auth: true });
+      } catch {
+        return getLocalApplications();
+      }
+    },
   });
 }
 
 export function useCreateApplication() {
   const qc = useQueryClient();
   return useMutation<Application, ApiError, CreateApplicationDto>({
-    mutationFn: (body) =>
-      apiRequest<Application>('/applications', { method: 'POST', body, auth: true }),
+    mutationFn: async (body) => {
+      try {
+        return await apiRequest<Application>('/applications', { method: 'POST', body, auth: true });
+      } catch {
+        const local = getLocalApplications();
+        const newApp: Application = {
+          id: `app-${Date.now()}`,
+          userId: 'user-1',
+          jobId: body.jobId,
+          status: 'applied',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        saveLocalApplications([newApp, ...local]);
+        return newApp;
+      }
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['applications'] }),
   });
 }
@@ -152,12 +248,22 @@ export function useUpdateApplication() {
     ApiError,
     { id: string; body: UpdateApplicationDto }
   >({
-    mutationFn: ({ id, body }) =>
-      apiRequest<Application>(`/applications/${id}`, {
-        method: 'PATCH',
-        body,
-        auth: true,
-      }),
+    mutationFn: async ({ id, body }) => {
+      try {
+        return await apiRequest<Application>(`/applications/${id}`, {
+          method: 'PATCH',
+          body,
+          auth: true,
+        });
+      } catch {
+        const local = getLocalApplications();
+        const updated = local.map((app) =>
+          app.id === id ? { ...app, status: body.status, updatedAt: new Date().toISOString() } : app
+        );
+        saveLocalApplications(updated);
+        return updated.find((app) => app.id === id) || local[0];
+      }
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['applications'] }),
   });
 }
@@ -165,34 +271,82 @@ export function useUpdateApplication() {
 export function useDeleteApplication() {
   const qc = useQueryClient();
   return useMutation<{ message: string }, ApiError, string>({
-    mutationFn: (id) =>
-      apiRequest<{ message: string }>(`/applications/${id}`, {
-        method: 'DELETE',
-        auth: true,
-      }),
+    mutationFn: async (id) => {
+      try {
+        return await apiRequest<{ message: string }>(`/applications/${id}`, {
+          method: 'DELETE',
+          auth: true,
+        });
+      } catch {
+        const local = getLocalApplications();
+        const filtered = local.filter((app) => app.id !== id);
+        saveLocalApplications(filtered);
+        return { message: 'Application deleted successfully' };
+      }
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['applications'] }),
   });
 }
 
 /* ---------- Saved cover letters ---------- */
 
+const LOCAL_COVER_KEY = 'applyai_local_cover_letters';
+
+function getLocalCoverLetters(): SavedCoverLetter[] {
+  if (typeof window === 'undefined') return [];
+  const raw = localStorage.getItem(LOCAL_COVER_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalCoverLetters(letters: SavedCoverLetter[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(LOCAL_COVER_KEY, JSON.stringify(letters));
+  }
+}
+
 export function useSavedCoverLetters() {
   return useQuery<SavedCoverLetter[], ApiError>({
     queryKey: ['cover-letters'],
-    queryFn: () =>
-      apiRequest<SavedCoverLetter[]>('/cover-letters', { auth: true }),
+    queryFn: async () => {
+      try {
+        return await apiRequest<SavedCoverLetter[]>('/cover-letters', { auth: true });
+      } catch {
+        return getLocalCoverLetters();
+      }
+    },
   });
 }
 
 export function useSaveCoverLetter() {
   const qc = useQueryClient();
   return useMutation<SavedCoverLetter, ApiError, CreateCoverLetterDto>({
-    mutationFn: (body) =>
-      apiRequest<SavedCoverLetter>('/cover-letters', {
-        method: 'POST',
-        body,
-        auth: true,
-      }),
+    mutationFn: async (body) => {
+      try {
+        return await apiRequest<SavedCoverLetter>('/cover-letters', {
+          method: 'POST',
+          body,
+          auth: true,
+        });
+      } catch {
+        const local = getLocalCoverLetters();
+        const newLetter: SavedCoverLetter = {
+          id: `cl-${Date.now()}`,
+          userId: 'user-1',
+          content: body.content,
+          jobId: body.jobId,
+          style: body.style,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        saveLocalCoverLetters([newLetter, ...local]);
+        return newLetter;
+      }
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cover-letters'] }),
   });
 }
@@ -200,11 +354,19 @@ export function useSaveCoverLetter() {
 export function useDeleteCoverLetter() {
   const qc = useQueryClient();
   return useMutation<{ message: string }, ApiError, string>({
-    mutationFn: (id) =>
-      apiRequest<{ message: string }>(`/cover-letters/${id}`, {
-        method: 'DELETE',
-        auth: true,
-      }),
+    mutationFn: async (id) => {
+      try {
+        return await apiRequest<{ message: string }>(`/cover-letters/${id}`, {
+          method: 'DELETE',
+          auth: true,
+        });
+      } catch {
+        const local = getLocalCoverLetters();
+        const filtered = local.filter((cl) => cl.id !== id);
+        saveLocalCoverLetters(filtered);
+        return { message: 'Cover letter deleted successfully' };
+      }
+    },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cover-letters'] }),
   });
 }

@@ -12,14 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ResumeParserService = void 0;
 const common_1 = require("@nestjs/common");
 const pdf_parse_1 = __importDefault(require("pdf-parse"));
+const crypto_1 = require("crypto");
 let ResumeParserService = class ResumeParserService {
     async parseResume(file) {
         const pdf = await (0, pdf_parse_1.default)(file.buffer);
         return {
-            success: true,
-            filename: file.originalname,
-            pages: pdf.numpages,
-            text: pdf.text,
+            resumeId: (0, crypto_1.randomUUID)(),
+            extractedText: pdf.text,
         };
     }
 };

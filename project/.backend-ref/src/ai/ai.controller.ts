@@ -8,25 +8,28 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Post('ats-score')
-  atsScore(@Body('resume') resume: string) {
-    return this.aiService.atsScore(resume);
+  atsScore(
+    @Body('resumeText') resumeText: string,
+    @Body('jobDescription') jobDescription?: string,
+  ) {
+    return this.aiService.atsScore(resumeText, jobDescription);
   }
 
   @Post('resume-analysis')
-  resumeAnalysis(@Body('resume') resume: string) {
-    return this.aiService.resumeAnalysis(resume);
+  resumeAnalysis(@Body('resumeText') resumeText: string) {
+    return this.aiService.resumeAnalysis(resumeText);
   }
 
   @Post('cover-letter')
   coverLetter(
-    @Body('resume') resume: string,
+    @Body('resumeText') resumeText: string,
     @Body('jobDescription') jobDescription: string,
   ) {
-    return this.aiService.coverLetter(resume, jobDescription);
+    return this.aiService.coverLetter(resumeText, jobDescription);
   }
 
   @Post('interview-questions')
-  interviewQuestions(@Body('jobRole') jobRole: string) {
-    return this.aiService.interviewQuestions(jobRole);
+  interviewQuestions(@Body('jobTitle') jobTitle: string) {
+    return this.aiService.interviewQuestions(jobTitle);
   }
 }

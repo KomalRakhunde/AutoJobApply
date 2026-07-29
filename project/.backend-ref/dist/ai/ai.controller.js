@@ -21,37 +21,38 @@ let AiController = class AiController {
     constructor(aiService) {
         this.aiService = aiService;
     }
-    atsScore(resume) {
-        return this.aiService.atsScore(resume);
+    atsScore(resumeText, jobDescription) {
+        return this.aiService.atsScore(resumeText, jobDescription);
     }
-    resumeAnalysis(resume) {
-        return this.aiService.resumeAnalysis(resume);
+    resumeAnalysis(resumeText) {
+        return this.aiService.resumeAnalysis(resumeText);
     }
-    coverLetter(resume, jobDescription) {
-        return this.aiService.coverLetter(resume, jobDescription);
+    coverLetter(resumeText, jobDescription) {
+        return this.aiService.coverLetter(resumeText, jobDescription);
     }
-    interviewQuestions(jobRole) {
-        return this.aiService.interviewQuestions(jobRole);
+    interviewQuestions(jobTitle) {
+        return this.aiService.interviewQuestions(jobTitle);
     }
 };
 exports.AiController = AiController;
 __decorate([
     (0, common_1.Post)('ats-score'),
-    __param(0, (0, common_1.Body)('resume')),
+    __param(0, (0, common_1.Body)('resumeText')),
+    __param(1, (0, common_1.Body)('jobDescription')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], AiController.prototype, "atsScore", null);
 __decorate([
     (0, common_1.Post)('resume-analysis'),
-    __param(0, (0, common_1.Body)('resume')),
+    __param(0, (0, common_1.Body)('resumeText')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AiController.prototype, "resumeAnalysis", null);
 __decorate([
     (0, common_1.Post)('cover-letter'),
-    __param(0, (0, common_1.Body)('resume')),
+    __param(0, (0, common_1.Body)('resumeText')),
     __param(1, (0, common_1.Body)('jobDescription')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String]),
@@ -59,7 +60,7 @@ __decorate([
 ], AiController.prototype, "coverLetter", null);
 __decorate([
     (0, common_1.Post)('interview-questions'),
-    __param(0, (0, common_1.Body)('jobRole')),
+    __param(0, (0, common_1.Body)('jobTitle')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)

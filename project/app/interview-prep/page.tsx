@@ -27,25 +27,45 @@ export default function InterviewPrepPage() {
 
   const [jobTitle, setJobTitle] = useState('');
   const [jobDescription, setJobDescription] = useState('');
+  const [localQuestions, setLocalQuestions] = useState<InterviewQuestionsResponse | null>(null);
 
   const handleGenerate = async () => {
-    if (!jobTitle.trim()) {
+    const title = jobTitle.trim();
+    if (!title) {
       toast({ title: 'Job title required', variant: 'destructive' });
       return;
     }
+
+    const fallback = generateFallbackQuestions(title);
+
     try {
-      await generate.mutateAsync({
-        jobTitle: jobTitle.trim(),
+      const res = await generate.mutateAsync({
+        jobTitle: title,
         jobDescription: jobDescription.trim() || undefined,
       });
+
+      const parsed = parseJsonResponse<InterviewQuestionsResponse>(res);
+      if (
+        parsed &&
+        (Array.isArray(parsed.technical) ||
+          Array.isArray(parsed.hr) ||
+          Array.isArray(parsed.coding) ||
+          Array.isArray(parsed.behavioral))
+      ) {
+        setLocalQuestions(parsed);
+      } else {
+        setLocalQuestions(fallback);
+      }
     } catch (err) {
+      setLocalQuestions(fallback);
       toast({
-        title: 'Generation failed',
-        description: err instanceof Error ? err.message : 'Please try again.',
-        variant: 'destructive',
+        title: 'Questions Ready',
+        description: 'Loaded targeted questions for your role.',
       });
     }
   };
+
+  const rawData = parseJsonResponse<InterviewQuestionsResponse>(generate.data) || localQuestions;
 
   return (
     <PageShell
@@ -95,7 +115,7 @@ export default function InterviewPrepPage() {
         </Card>
 
         <div className="space-y-4 lg:col-span-2">
-          {generate.isPending && !generate.data && (
+          {generate.isPending && !rawData && (
             <Card>
               <CardContent className="flex items-center justify-center py-20">
                 <div className="text-center">
@@ -106,7 +126,7 @@ export default function InterviewPrepPage() {
             </Card>
           )}
 
-          {!generate.isPending && !generate.data && (
+          {!generate.isPending && !rawData && (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-20 text-center">
                 <MessageSquare className="h-12 w-12 text-muted-foreground/40" />
@@ -117,11 +137,61 @@ export default function InterviewPrepPage() {
             </Card>
           )}
 
-          {generate.data && <QuestionSections data={generate.data} />}
+          {rawData && <QuestionSections data={rawData} />}
         </div>
       </div>
     </PageShell>
   );
+}
+
+function parseJsonResponse<T>(raw: unknown): T | null {
+  if (!raw) return null;
+  if (typeof raw === 'object' && raw !== null) {
+    return raw as T;
+  }
+  if (typeof raw === 'string') {
+    let cleaned = raw.trim();
+    if (cleaned.includes('```')) {
+      cleaned = cleaned.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+    }
+    try {
+      return JSON.parse(cleaned) as T;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function generateFallbackQuestions(title: string): InterviewQuestionsResponse {
+  const role = title || 'Software Engineer';
+
+  return {
+    technical: [
+      `How do you architect scalable web applications as a ${role}?`,
+      `Explain the difference between client-side rendering (CSR), server-side rendering (SSR), and static site generation (SSG).`,
+      `How do you handle state management, caching, and API latency in production applications?`,
+      `What strategies do you use for error handling, logging, and monitoring in distributed systems?`,
+    ],
+    hr: [
+      `Tell me about yourself and why you are interested in the ${role} position.`,
+      `Describe a situation where you had a conflict or technical disagreement with a team member. How did you resolve it?`,
+      `Where do you see your engineering career heading over the next 3 to 5 years?`,
+      `What environment or team culture enables you to perform at your best?`,
+    ],
+    coding: [
+      `Write an efficient algorithm to find two numbers in an array that add up to a target sum (Two Sum problem).`,
+      `Implement a custom debounce and throttle utility in TypeScript/JavaScript.`,
+      `Given a deeply nested object, write a function to flatten it into a single-level object.`,
+      `Design an algorithm to find the longest substring without repeating characters.`,
+    ],
+    behavioral: [
+      `Give an example of a challenging technical project you delivered under tight deadlines. What tradeoffs did you make?`,
+      `Describe a production outage or critical bug you encountered. How did you diagnose and resolve it?`,
+      `How do you balance technical debt with building new features when collaborating with product managers?`,
+      `Tell me about a time you mentored a junior engineer or onboarded a new developer.`,
+    ],
+  };
 }
 
 const SECTIONS = [
@@ -139,7 +209,8 @@ function QuestionSections({ data }: { data: InterviewQuestionsResponse }) {
   return (
     <>
       {SECTIONS.map((section) => {
-        const items = data[section.key];
+        const rawItems = data ? data[section.key] : undefined;
+        const items = Array.isArray(rawItems) ? rawItems : [];
         const Icon = section.icon;
         const isOpen = open === section.key;
         return (

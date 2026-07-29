@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import pdfParse from 'pdf-parse';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class ResumeParserService {
@@ -7,10 +8,8 @@ export class ResumeParserService {
     const pdf = await pdfParse(file.buffer);
 
     return {
-      success: true,
-      filename: file.originalname,
-      pages: pdf.numpages,
-      text: pdf.text,
+      resumeId: randomUUID(),
+      extractedText: pdf.text,
     };
   }
 }

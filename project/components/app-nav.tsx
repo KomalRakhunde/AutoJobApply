@@ -23,17 +23,24 @@ import {
   KanbanSquare,
   MessageSquare,
   User as UserIcon,
+  Bot,
+  Compass,
+  Mail,
+  Crown,
 } from 'lucide-react';
 import Link from 'next/link';
 
 const navLinks = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, enabled: true },
+  { href: '/auto-apply', label: 'Auto-Apply', icon: Bot, enabled: true },
   { href: '/resume', label: 'Resume & ATS', icon: Target, enabled: true },
   { href: '/jobs', label: 'Jobs', icon: Briefcase, enabled: true },
-  { href: '/cover-letter', label: 'Cover Letter', icon: FileText, enabled: true },
   { href: '/applications', label: 'Tracker', icon: KanbanSquare, enabled: true },
+  { href: '/cover-letter', label: 'Cover Letter', icon: FileText, enabled: true },
   { href: '/interview-prep', label: 'Interview', icon: MessageSquare, enabled: true },
-  { href: '/profile', label: 'Profile', icon: UserIcon, enabled: true },
+  { href: '/career-coach', label: 'Coach', icon: Compass, enabled: true },
+  { href: '/email-sync', label: 'Email AI', icon: Mail, enabled: true },
+  { href: '/pricing', label: 'Plans', icon: Crown, enabled: true },
 ];
 
 export function AppNav() {

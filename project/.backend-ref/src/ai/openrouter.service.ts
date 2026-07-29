@@ -8,7 +8,7 @@ export class OpenRouterService {
     baseURL: 'https://openrouter.ai/api/v1',
   });
 
-  async generate(prompt: string) {
+  async generate(prompt: string): Promise<string> {
     const completion = await this.client.chat.completions.create({
       model: 'inclusionai/ling-3.0-flash:free',
       messages: [
@@ -20,6 +20,6 @@ export class OpenRouterService {
       temperature: 0.7,
     });
 
-    return completion.choices[0].message.content;
+    return completion.choices[0]?.message?.content ?? '';
   }
 }

@@ -17,44 +17,74 @@ let AiService = class AiService {
     constructor(openRouter) {
         this.openRouter = openRouter;
     }
-    async atsScore(resume) {
+    async atsScore(resumeText, jobDescription) {
         return this.openRouter.generate(`
-Give an ATS score (0-100) for this resume.
-Return only JSON.
+You are an ATS Resume Analyzer.
+
+Return ONLY valid JSON in this exact format:
+
+{
+  "score": 0,
+  "breakdown": {
+    "keywordMatch": 0,
+    "formatting": 0,
+    "completeness": 0
+  },
+  "matchedKeywords": [],
+  "missingKeywords": []
+}
 
 Resume:
-${resume}
+${resumeText}
+
+Job Description:
+${jobDescription ?? 'Not Provided'}
 `);
     }
-    async resumeAnalysis(resume) {
+    async resumeAnalysis(resumeText) {
         return this.openRouter.generate(`
 Analyze this resume.
 
-Return:
-1. ATS Score
-2. Strengths
-3. Weaknesses
-4. Missing Skills
-5. Suggestions
+Return ONLY valid JSON in this exact format:
+
+{
+  "overallScore": 0,
+  "strengths": [],
+  "weaknesses": [],
+  "suggestions": [],
+  "redFlags": []
+}
 
 Resume:
-${resume}
+${resumeText}
 `);
     }
-    async coverLetter(resume, jobDescription) {
+    async coverLetter(resumeText, jobDescription) {
         return this.openRouter.generate(`
 Write a professional cover letter.
 
 Resume:
-${resume}
+${resumeText}
 
 Job Description:
 ${jobDescription}
 `);
     }
-    async interviewQuestions(jobRole) {
+    async interviewQuestions(jobTitle) {
         return this.openRouter.generate(`
-Generate 15 technical interview questions with answers for ${jobRole}.
+Generate interview questions.
+
+Return ONLY valid JSON:
+
+{
+  "technical": [],
+  "hr": [],
+  "coding": [],
+  "behavioral": []
+}
+
+Job Role:
+${jobTitle}
 `);
     }
 };
