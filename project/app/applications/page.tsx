@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Loader2, MoreVertical, Trash2, Briefcase } from 'lucide-react';
+import { Loader2, MoreVertical, Trash2, Briefcase, Filter } from 'lucide-react';
 import {
   useApplications,
   useUpdateApplication,
@@ -27,6 +27,8 @@ export default function ApplicationsPage() {
   const { data: applications, isLoading } = useApplications();
   const updateApplication = useUpdateApplication();
   const deleteApplication = useDeleteApplication();
+
+  const [mobileTab, setMobileTab] = useState<string>('ALL');
 
   const grouped = useMemo(() => {
     const map = new Map<ApplicationStatus, Application[]>();
@@ -74,30 +76,67 @@ export default function ApplicationsPage() {
     );
   }
 
+  const filteredStatuses = mobileTab === 'ALL'
+    ? APPLICATION_STATUSES
+    : APPLICATION_STATUSES.filter((s) => s.value === mobileTab);
+
   return (
     <PageShell
       title="Application Tracker"
       subtitle="Track your applications across a clear pipeline."
     >
-      <div className="grid gap-4 lg:grid-cols-3 xl:grid-cols-6">
+      {/* Mobile status pill tabs */}
+      <div className="mb-4 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 lg:hidden">
+        <button
+          onClick={() => setMobileTab('ALL')}
+          className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+            mobileTab === 'ALL'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+          }`}
+        >
+          All Stages ({applications?.length ?? 0})
+        </button>
         {APPLICATION_STATUSES.map((col) => {
+          const count = (grouped.get(col.value) ?? []).length;
+          const isActive = mobileTab === col.value;
+          return (
+            <button
+              key={col.value}
+              onClick={() => setMobileTab(col.value)}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                isActive
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                  : 'bg-muted/80 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${isActive ? 'bg-white' : col.color}`} />
+              {col.label} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Kanban columns grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {filteredStatuses.map((col) => {
           const items = grouped.get(col.value) ?? [];
           return (
-            <div key={col.value} className="flex flex-col rounded-xl bg-muted/30 p-3">
+            <div key={col.value} className="flex flex-col rounded-2xl bg-muted/40 p-3 border border-border/50">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className={`h-2.5 w-2.5 rounded-full ${col.color}`} />
-                  <span className="text-sm font-semibold">{col.label}</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-foreground">{col.label}</span>
                 </div>
-                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground shadow-sm">
                   {items.length}
                 </span>
               </div>
-              <div className="flex flex-1 flex-col gap-2">
+              <div className="flex flex-1 flex-col gap-2.5 min-h-[120px]">
                 {items.length === 0 ? (
-                  <p className="py-8 text-center text-xs text-muted-foreground">
+                  <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-border/60 py-6 text-center text-xs text-muted-foreground">
                     No applications
-                  </p>
+                  </div>
                 ) : (
                   items.map((app) => (
                     <AppCard
@@ -142,17 +181,17 @@ function AppCard({
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100">
+              <button className="rounded-md p-1.5 text-muted-foreground transition-opacity hover:bg-muted lg:opacity-0 group-hover:opacity-100">
                 <MoreVertical className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuLabel>Move to…</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuLabel className="text-xs">Move to…</DropdownMenuLabel>
               {otherStatuses.map((s) => (
                 <DropdownMenuItem
                   key={s.value}
                   onClick={() => onStatusChange(s.value)}
-                  className="cursor-pointer gap-2"
+                  className="cursor-pointer gap-2 text-xs"
                 >
                   <span className={`h-2 w-2 rounded-full ${s.color}`} />
                   {s.label}
@@ -161,14 +200,14 @@ function AppCard({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={onDelete}
-                className="cursor-pointer gap-2 text-destructive focus:text-destructive"
+                className="cursor-pointer gap-2 text-xs text-destructive focus:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5" /> Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <p className="mt-2 truncate text-sm font-medium">
+        <p className="mt-2 truncate text-sm font-semibold text-foreground">
           {app.job?.title ?? 'Unknown position'}
         </p>
         <p className="truncate text-xs text-muted-foreground">

@@ -3,6 +3,7 @@
 import { Provider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
+import { ThemeProvider } from 'next-themes';
 import { store } from '@/lib/store';
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -20,8 +21,10 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 
   return (
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    </Provider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </Provider>
+    </ThemeProvider>
   );
 }

@@ -499,49 +499,53 @@ function AtsScoreCard({ data }: { data: AtsScoreResponse }) {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-green-600">
-                Matched Keywords
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <Card className="border-emerald-500/20 bg-emerald-500/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4" /> Matched Keywords ({matchedKeywords.length})
               </CardTitle>
             </CardHeader>
 
             <CardContent>
               {matchedKeywords.length === 0 ? (
-                <p>No matched keywords.</p>
+                <p className="text-xs text-muted-foreground">No matched keywords.</p>
               ) : (
-                matchedKeywords.map((k) => (
-                  <span
-                    key={k}
-                    className="mr-2 inline-block rounded bg-green-100 px-2 py-1 text-sm"
-                  >
-                    {k}
-                  </span>
-                ))
+                <div className="flex flex-wrap gap-1.5">
+                  {matchedKeywords.map((k) => (
+                    <span
+                      key={k}
+                      className="rounded-lg bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-500/20"
+                    >
+                      {k}
+                    </span>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-red-600">
-                Missing Keywords
+          <Card className="border-rose-500/20 bg-rose-500/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                <XCircle className="h-4 w-4" /> Missing Keywords ({missingKeywords.length})
               </CardTitle>
             </CardHeader>
 
             <CardContent>
               {missingKeywords.length === 0 ? (
-                <p>No missing keywords.</p>
+                <p className="text-xs text-muted-foreground">No missing keywords.</p>
               ) : (
-                missingKeywords.map((k) => (
-                  <span
-                    key={k}
-                    className="mr-2 inline-block rounded bg-red-100 px-2 py-1 text-sm"
-                  >
-                    {k}
-                  </span>
-                ))
+                <div className="flex flex-wrap gap-1.5">
+                  {missingKeywords.map((k) => (
+                    <span
+                      key={k}
+                      className="rounded-lg bg-rose-500/15 px-2.5 py-1 text-xs font-medium text-rose-700 dark:text-rose-300 border border-rose-500/20"
+                    >
+                      {k}
+                    </span>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>

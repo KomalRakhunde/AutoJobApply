@@ -11,14 +11,25 @@ const loadInitial = (): AuthState => {
   if (typeof window === 'undefined') {
     return { token: null, user: null, status: 'idle' };
   }
-  const token = localStorage.getItem('applyai_token');
-  const userJson = localStorage.getItem('applyai_user');
-  const user = userJson ? (JSON.parse(userJson) as Pick<User, 'id' | 'email'>) : null;
-  return {
-    token,
-    user,
-    status: token && user ? 'authenticated' : 'unauthenticated',
-  };
+  try {
+    const token = localStorage.getItem('applyai_token');
+    const userJson = localStorage.getItem('applyai_user');
+    let user: Pick<User, 'id' | 'email'> | null = null;
+    if (userJson) {
+      try {
+        user = JSON.parse(userJson);
+      } catch {
+        user = null;
+      }
+    }
+    return {
+      token,
+      user,
+      status: token && user ? 'authenticated' : 'unauthenticated',
+    };
+  } catch {
+    return { token: null, user: null, status: 'unauthenticated' };
+  }
 };
 
 const initialState: AuthState = loadInitial();

@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAppSelector } from '@/lib/store/hooks';
 import { useGetProfile, useUpdateProfile } from '@/lib/hooks/use-profile';
 import { useGetUser, useUpdateUser } from '@/lib/hooks/use-auth';
-import { AppNav } from '@/components/app-nav';
-import { AuthGuard } from '@/components/auth-guard';
+import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -129,18 +128,10 @@ export default function ProfilePage() {
     setProfileForm((f) => ({ ...f, [key]: value }));
 
   return (
-    <AuthGuard>
-      <div className="min-h-screen bg-background">
-        <AppNav />
-        <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="animate-fade-in-up">
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Your Profile
-            </h1>
-            <p className="mt-2 text-muted-foreground">
-              Keep your details up to date so AI tools can tailor recommendations.
-            </p>
-          </div>
+    <PageShell
+      title="Your Profile"
+      subtitle="Keep your details up to date so AI tools can tailor recommendations."
+    >
 
           <div className="mt-8 space-y-6">
             {/* Personal info */}
@@ -342,9 +333,7 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           </div>
-        </main>
-      </div>
-    </AuthGuard>
+    </PageShell>
   );
 }
 
