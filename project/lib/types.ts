@@ -1,8 +1,11 @@
+export type UserRole = 'student' | 'recruiter' | 'admin' | 'super_admin';
+
 export interface User {
   id: string;
   email: string;
   firstName?: string | null;
   lastName?: string | null;
+  role?: UserRole;
 }
 
 export interface RegisterResponse {

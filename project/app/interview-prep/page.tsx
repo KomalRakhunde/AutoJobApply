@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Loader2,
   MessageSquare,
@@ -16,18 +19,35 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  Mic,
+  CheckCircle2,
+  ArrowRight,
+  ShieldCheck,
+  Calendar,
+  Building2,
+  Briefcase,
 } from 'lucide-react';
 import { useInterviewQuestions } from '@/lib/hooks/use-features';
 import type { InterviewQuestionsResponse } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
-export default function InterviewPrepPage() {
+function InterviewPrepContent() {
   const { toast } = useToast();
   const generate = useInterviewQuestions();
+  const searchParams = useSearchParams();
+  const candidateId = searchParams.get('candidate');
 
   const [jobTitle, setJobTitle] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [localQuestions, setLocalQuestions] = useState<InterviewQuestionsResponse | null>(null);
+
+  useEffect(() => {
+    if (candidateId) {
+      const defaultRole = 'Senior Full Stack Engineer';
+      setJobTitle(defaultRole);
+      setLocalQuestions(generateFallbackQuestions(defaultRole));
+    }
+  }, [candidateId]);
 
   const handleGenerate = async () => {
     const title = jobTitle.trim();
@@ -69,9 +89,60 @@ export default function InterviewPrepPage() {
 
   return (
     <PageShell
-      title="Interview Preparation"
-      subtitle="Get AI-generated interview questions tailored to any role."
+      title="Interview Preparation & AI Voice Screening"
+      subtitle="Prepare for your interview and launch your autonomous AI voice technical screening session."
     >
+      {/* CANDIDATE INVITATION BANNER */}
+      {candidateId && (
+        <Card className="mb-8 border-2 border-indigo-500/30 bg-gradient-to-r from-indigo-950 via-slate-900 to-slate-900 text-white rounded-3xl p-6 shadow-2xl overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+            <Mic className="h-64 w-64 text-indigo-400" />
+          </div>
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-emerald-500 text-white font-bold text-xs px-3 py-1 gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> QUALIFIED FOR NEXT ROUND
+                </Badge>
+                <Badge className="bg-indigo-900/80 text-indigo-200 border-indigo-700 text-xs px-3 py-1 font-mono">
+                  ATS Score: 82%
+                </Badge>
+              </div>
+              <h2 className="text-2xl font-extrabold text-white tracking-tight">
+                AI Voice Technical Screening Interview Session
+              </h2>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Congratulations, <strong className="text-white font-semibold">Komal Rakhunde</strong>! You have been officially selected for an autonomous AI voice screening interview for the <strong className="text-indigo-300">Senior Full Stack Engineer</strong> role at <strong className="text-white">ApplyAI Corp</strong>.
+              </p>
+              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1">
+                <span className="flex items-center gap-1.5 font-medium text-slate-300">
+                  <Briefcase className="h-4 w-4 text-indigo-400" /> Senior Full Stack Engineer
+                </span>
+                <span className="flex items-center gap-1.5 font-medium text-slate-300">
+                  <Building2 className="h-4 w-4 text-indigo-400" /> ApplyAI Corp
+                </span>
+                <span className="flex items-center gap-1.5 font-medium text-emerald-400 font-semibold">
+                  <Calendar className="h-4 w-4" /> Next Tuesday at 10:00 AM
+                </span>
+              </div>
+            </div>
+
+            <div className="shrink-0 w-full md:w-auto">
+              <Link href={`/interview/join/${candidateId}`}>
+                <Button
+                  size="lg"
+                  className="w-full md:w-auto bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold rounded-2xl py-6 px-8 shadow-xl shadow-indigo-600/40 text-base gap-3 transition-all hover:scale-105"
+                >
+                  <Mic className="h-5 w-5 animate-pulse" />
+                  <span>Start AI Voice Technical Interview</span>
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </Card>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <CardHeader>
@@ -262,3 +333,18 @@ function QuestionSections({ data }: { data: InterviewQuestionsResponse }) {
     </>
   );
 }
+
+export default function InterviewPrepPage() {
+  return (
+    <Suspense fallback={
+      <PageShell title="Interview Preparation & AI Voice Screening" subtitle="Loading interview prep session...">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        </div>
+      </PageShell>
+    }>
+      <InterviewPrepContent />
+    </Suspense>
+  );
+}
+

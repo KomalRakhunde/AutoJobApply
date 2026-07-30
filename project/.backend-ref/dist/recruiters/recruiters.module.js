@@ -8,10 +8,20 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RecruitersModule = void 0;
 const common_1 = require("@nestjs/common");
+const recruiters_controller_1 = require("./recruiters.controller");
+const recruiters_service_1 = require("./recruiters.service");
+const prisma_module_1 = require("../prisma/prisma.module");
+const ai_module_1 = require("../ai/ai.module");
+const interview_module_1 = require("../interview/interview.module");
 let RecruitersModule = class RecruitersModule {
 };
 exports.RecruitersModule = RecruitersModule;
 exports.RecruitersModule = RecruitersModule = __decorate([
-    (0, common_1.Module)({})
+    (0, common_1.Module)({
+        imports: [prisma_module_1.PrismaModule, ai_module_1.AiModule, interview_module_1.InterviewModule],
+        controllers: [recruiters_controller_1.RecruitersController],
+        providers: [recruiters_service_1.RecruitersService],
+        exports: [recruiters_service_1.RecruitersService],
+    })
 ], RecruitersModule);
 //# sourceMappingURL=recruiters.module.js.map

@@ -6,5 +6,6 @@ import { OpenRouterService } from './openrouter.service';
 @Module({
   controllers: [AiController],
   providers: [AiService, OpenRouterService],
+  exports: [AiService, OpenRouterService],
 })
 export class AiModule {}

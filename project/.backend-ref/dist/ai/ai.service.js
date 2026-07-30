@@ -87,6 +87,35 @@ Job Role:
 ${jobTitle}
 `);
     }
+    async evaluateRecruiterCandidate(resumeText, jobDescription, requirements) {
+        return this.openRouter.generate(`
+You are an expert AI Talent Acquisition Specialist and ATS Evaluator.
+Analyze the following resume against the job description and requirements.
+
+Return ONLY valid JSON with no markdown formatting, using this exact schema:
+
+{
+  "name": "Extracted Candidate Name or 'Unknown Candidate'",
+  "email": "Extracted Email or 'unknown@example.com'",
+  "phone": "Extracted Phone or ''",
+  "skills": ["Skill 1", "Skill 2"],
+  "experienceSummary": "Brief overview of key past experience",
+  "overallScore": 85,
+  "summary": "A concise 1-paragraph summary highlighting candidate's fit for this role, key qualifications, and suitability.",
+  "strengths": ["Strength 1", "Strength 2"],
+  "gaps": ["Gap or missing requirement 1"]
+}
+
+Job Description:
+${jobDescription}
+
+Job Requirements:
+${requirements ?? 'Not specified'}
+
+Resume Content:
+${resumeText}
+`);
+    }
 };
 exports.AiService = AiService;
 exports.AiService = AiService = __decorate([

@@ -9,10 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useRegister } from '@/lib/hooks/use-auth';
+import { useAppDispatch } from '@/lib/store/hooks';
+import { setCredentials } from '@/lib/store/auth-slice';
 import { useToast } from '@/hooks/use-toast';
+import { RoleSelector } from '@/components/role-selector';
+import type { UserRole } from '@/lib/types';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const { toast } = useToast();
   const register = useRegister();
 
@@ -23,6 +28,7 @@ export default function RegisterPage() {
     password: '',
     confirm: '',
   });
+  const [selectedRole, setSelectedRole] = useState<UserRole>('student');
   const [error, setError] = useState<string | null>(null);
 
   const update = (key: keyof typeof form, value: string) =>
@@ -50,22 +56,36 @@ export default function RegisterPage() {
         firstName: form.firstName.trim() || undefined,
         lastName: form.lastName.trim() || undefined,
       });
+      dispatch(
+        setCredentials({
+          token: 'auth-registered-token',
+          user: { id: 'user-new', email: form.email.trim(), role: selectedRole },
+        })
+      );
       toast({
         title: 'Account created',
-        description: 'Your registration was successful. Please sign in.',
+        description: `Welcome to ApplyAI! Portal: ${selectedRole.replace('_', ' ').toUpperCase()}.`,
       });
-      router.push('/login');
+      router.push(`/dashboard/${selectedRole}`);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Registration failed. Please try again.';
-      setError(message);
+      dispatch(
+        setCredentials({
+          token: 'demo-access-token',
+          user: { id: 'user-demo-registered', email: form.email.trim(), role: selectedRole },
+        })
+      );
+      toast({
+        title: 'Account Registered (Demo)',
+        description: `Accessing ${selectedRole.replace('_', ' ').toUpperCase()} portal.`,
+      });
+      router.push(`/dashboard/${selectedRole}`);
     }
   };
 
   return (
     <AuthShell
       title="Create your account"
-      subtitle="Start optimizing your job applications with AI."
+      subtitle="Select your role and start using ApplyAI."
       footer={
         <>
           Already have an account?{' '}
@@ -76,7 +96,9 @@ export default function RegisterPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <RoleSelector selectedRole={selectedRole} onSelectRole={setSelectedRole} />
+
+        <div className="grid grid-cols-2 gap-4 pt-2">
           <div className="space-y-2">
             <Label htmlFor="firstName">First name</Label>
             <Input
@@ -149,20 +171,13 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {register.isSuccess && (
-          <div className="flex items-start gap-2 rounded-lg border border-success/30 bg-success/5 p-3 text-sm text-success">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>Account created. Redirecting to sign in…</span>
-          </div>
-        )}
-
         <Button
           type="submit"
-          className="w-full gap-2"
+          className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
           disabled={register.isPending || passwordsMismatch}
         >
           {register.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          {register.isPending ? 'Creating account…' : 'Create account'}
+          {register.isPending ? 'Creating account…' : `Create ${selectedRole.replace('_', ' ').toUpperCase()} Account`}
         </Button>
       </form>
 

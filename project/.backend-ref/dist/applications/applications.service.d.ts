@@ -4,7 +4,8 @@ import { UpdateApplicationDto } from './dto/update-application.dto';
 export declare class ApplicationsService {
     private prisma;
     constructor(prisma: PrismaService);
-    create(userId: string, dto: CreateApplicationDto): import(".prisma/client").Prisma.Prisma__ApplicationClient<{
+    private demoApps;
+    create(userId: string, dto: CreateApplicationDto): Promise<{
         id: string;
         updatedAt: Date;
         userId: string;
@@ -12,8 +13,40 @@ export declare class ApplicationsService {
         resumeId: string | null;
         status: string;
         appliedAt: Date;
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
-    findAll(userId: string): import(".prisma/client").Prisma.PrismaPromise<({
+    } | {
+        id: string;
+        userId: string;
+        jobId: string;
+        status: any;
+        createdAt: string;
+        updatedAt: string;
+        job: {
+            id: string;
+            title: string;
+            company: string;
+            location: string;
+            salary: string;
+            createdAt: string;
+            updatedAt: string;
+        };
+    }>;
+    findAll(userId?: string): Promise<{
+        id: string;
+        userId: string;
+        jobId: string;
+        status: string;
+        createdAt: string;
+        updatedAt: string;
+        job: {
+            id: string;
+            title: string;
+            company: string;
+            location: string;
+            salary: string;
+            createdAt: string;
+            updatedAt: string;
+        };
+    }[] | ({
         resume: {
             id: string;
             createdAt: Date;
@@ -45,12 +78,35 @@ export declare class ApplicationsService {
     })[]>;
     update(id: string, dto: UpdateApplicationDto): Promise<{
         id: string;
+        userId: string;
+        jobId: string;
+        status: string;
+        createdAt: string;
+        updatedAt: string;
+        job: {
+            id: string;
+            title: string;
+            company: string;
+            location: string;
+            salary: string;
+            createdAt: string;
+            updatedAt: string;
+        };
+    } | {
+        id: string;
         updatedAt: Date;
         userId: string;
         jobId: string;
         resumeId: string | null;
         status: string;
         appliedAt: Date;
+    } | {
+        id: string;
+        userId: string;
+        jobId: string;
+        status: string;
+        createdAt: string;
+        updatedAt: string;
     }>;
     remove(id: string): Promise<{
         message: string;

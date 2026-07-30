@@ -1,9 +1,9 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { User } from '../types';
+import type { User, UserRole } from '../types';
 
 export interface AuthState {
   token: string | null;
-  user: Pick<User, 'id' | 'email'> | null;
+  user: (Pick<User, 'id' | 'email'> & { role?: UserRole }) | null;
   status: 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
 }
 
@@ -14,7 +14,7 @@ const loadInitial = (): AuthState => {
   try {
     const token = localStorage.getItem('applyai_token');
     const userJson = localStorage.getItem('applyai_user');
-    let user: Pick<User, 'id' | 'email'> | null = null;
+    let user: (Pick<User, 'id' | 'email'> & { role?: UserRole }) | null = null;
     if (userJson) {
       try {
         user = JSON.parse(userJson);
@@ -42,18 +42,29 @@ const authSlice = createSlice({
       state,
       action: PayloadAction<{
         token: string;
-        user: Pick<User, 'id' | 'email'>;
+        user: Pick<User, 'id' | 'email'> & { role?: UserRole };
       }>
     ) {
       state.token = action.payload.token;
-      state.user = action.payload.user;
+      state.user = {
+        ...action.payload.user,
+        role: action.payload.user.role ?? 'student',
+      };
       state.status = 'authenticated';
       if (typeof window !== 'undefined') {
         localStorage.setItem('applyai_token', action.payload.token);
         localStorage.setItem(
           'applyai_user',
-          JSON.stringify(action.payload.user)
+          JSON.stringify(state.user)
         );
+      }
+    },
+    setRole(state, action: PayloadAction<UserRole>) {
+      if (state.user) {
+        state.user.role = action.payload;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('applyai_user', JSON.stringify(state.user));
+        }
       }
     },
     logout(state) {
@@ -68,5 +79,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, logout } = authSlice.actions;
+export const { setCredentials, setRole, logout } = authSlice.actions;
 export default authSlice.reducer;

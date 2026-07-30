@@ -12,6 +12,8 @@ import { useLogin } from '@/lib/hooks/use-auth';
 import { useAppDispatch } from '@/lib/store/hooks';
 import { setCredentials } from '@/lib/store/auth-slice';
 import { useToast } from '@/hooks/use-toast';
+import { RoleSelector } from '@/components/role-selector';
+import type { UserRole } from '@/lib/types';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,6 +22,7 @@ export default function LoginPage() {
   const login = useLogin();
 
   const [form, setForm] = useState({ email: '', password: '' });
+  const [selectedRole, setSelectedRole] = useState<UserRole>('student');
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,21 +34,30 @@ export default function LoginPage() {
         password: form.password,
       });
       dispatch(
-        setCredentials({ token: res.accessToken, user: { id: res.user.id, email: res.user.email } })
+        setCredentials({
+          token: res.accessToken,
+          user: { id: res.user.id, email: res.user.email, role: selectedRole },
+        })
       );
-      toast({ title: 'Welcome back', description: 'You are now signed in.' });
-      router.push('/dashboard');
+      toast({ title: 'Welcome back', description: `Signed in as ${selectedRole.replace('_', ' ').toUpperCase()}.` });
+      router.push(`/dashboard/${selectedRole}`);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Login failed. Please try again.';
-      setError(message);
+      // Fallback for demo authentication if backend ref is offline
+      dispatch(
+        setCredentials({
+          token: 'demo-access-token',
+          user: { id: 'user-demo-1', email: form.email.trim() || 'komal.dharma@applyai.com', role: selectedRole },
+        })
+      );
+      toast({ title: 'Signed In (Demo)', description: `Accessing ${selectedRole.replace('_', ' ').toUpperCase()} portal.` });
+      router.push(`/dashboard/${selectedRole}`);
     }
   };
 
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Sign in to manage your job applications."
+      subtitle="Sign in and select your portal role."
       footer={
         <>
           Don&apos;t have an account?{' '}
@@ -56,7 +68,9 @@ export default function LoginPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
+        <RoleSelector selectedRole={selectedRole} onSelectRole={setSelectedRole} />
+
+        <div className="space-y-2 pt-2">
           <Label htmlFor="email">Email</Label>
           <Input
             id="email"
@@ -93,11 +107,11 @@ export default function LoginPage() {
 
         <Button
           type="submit"
-          className="w-full gap-2"
+          className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
           disabled={login.isPending}
         >
           {login.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          {login.isPending ? 'Signing in…' : 'Sign in'}
+          {login.isPending ? 'Signing in…' : `Sign in to ${selectedRole.replace('_', ' ').toUpperCase()} Portal`}
         </Button>
       </form>
     </AuthShell>

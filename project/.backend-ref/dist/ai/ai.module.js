@@ -18,6 +18,7 @@ exports.AiModule = AiModule = __decorate([
     (0, common_1.Module)({
         controllers: [ai_controller_1.AiController],
         providers: [ai_service_1.AiService, openrouter_service_1.OpenRouterService],
+        exports: [ai_service_1.AiService, openrouter_service_1.OpenRouterService],
     })
 ], AiModule);
 //# sourceMappingURL=ai.module.js.map

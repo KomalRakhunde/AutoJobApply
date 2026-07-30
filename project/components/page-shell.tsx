@@ -9,6 +9,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,9 +17,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks';
-import { logout } from '@/lib/store/auth-slice';
+import { logout, setRole } from '@/lib/store/auth-slice';
+import type { UserRole } from '@/lib/types';
 import {
   Sparkles,
   Search,
@@ -35,6 +40,10 @@ import {
   Mail,
   ArrowRight,
   X,
+  ShieldCheck,
+  ShieldAlert,
+  GraduationCap,
+  ChevronRight,
 } from 'lucide-react';
 
 const searchableItems = [
@@ -47,6 +56,13 @@ const searchableItems = [
   { label: 'AI Career Coach', href: '/career-coach', type: 'AI Tool', icon: Compass },
   { label: 'Email Inbox AI', href: '/email-sync', type: 'Sync', icon: Mail },
 ];
+
+const roleBadges: Record<UserRole, { label: string; color: string }> = {
+  student: { label: 'Student', color: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800' },
+  recruiter: { label: 'Recruiter', color: 'bg-blue-50 text-blue-700 dark:bg-blue-950/80 dark:text-blue-300 border-blue-200 dark:border-blue-800' },
+  admin: { label: 'Admin', color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' },
+  super_admin: { label: 'Super Admin', color: 'bg-amber-50 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-200 dark:border-amber-800' },
+};
 
 export function PageShell({
   title,
@@ -70,12 +86,20 @@ export function PageShell({
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const role: UserRole = user?.role ?? 'student';
+  const roleBadge = roleBadges[role] || roleBadges.student;
+
   const username = user?.email ? user.email.split('@')[0] : 'komal.dharma';
   const initials = username.slice(0, 2).toUpperCase();
 
   const handleLogout = () => {
     dispatch(logout());
     router.replace('/login');
+  };
+
+  const handleSwitchRole = (newRole: UserRole) => {
+    dispatch(setRole(newRole));
+    router.push(`/dashboard/${newRole}`);
   };
 
   // Keyboard shortcut Ctrl+K / Cmd+K to focus search
@@ -140,7 +164,7 @@ export function PageShell({
 
         {/* Main Application Column */}
         <div className="flex flex-1 flex-col min-w-0">
-          {/* Sticky Top Clean Header Bar with Logo */}
+          {/* Sticky Top Clean Header Bar */}
           <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 sm:px-6 lg:px-8 pt-safe shadow-sm">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               {/* Toggle Sidebar Button */}
@@ -160,7 +184,6 @@ export function PageShell({
               >
                 <PanelLeft className="h-5 w-5" />
               </Button>
-
 
               {/* Functional Search Bar with Instant Command Palette */}
               <div ref={searchRef} className="relative max-w-md w-full hidden sm:block">
@@ -235,13 +258,10 @@ export function PageShell({
 
             {/* Header Right Actions & Profile */}
             <div className="flex items-center gap-3 shrink-0">
-              <div className="hidden md:flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/80 px-3 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-400">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span>Auto-Apply Active</span>
-              </div>
+              {/* Role Pill Badge */}
+              <span className={`hidden sm:inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${roleBadge.color}`}>
+                {roleBadge.label} Portal
+              </span>
 
               {actions}
               <ThemeToggle />
@@ -259,24 +279,57 @@ export function PageShell({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 rounded-xl">
                   <DropdownMenuLabel className="font-normal p-3">
-                    <p className="text-sm font-semibold leading-none text-slate-900 dark:text-white">
-                      {username}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold leading-none text-slate-900 dark:text-white">
+                        {username}
+                      </p>
+                      <span className={`rounded border px-1.5 py-0.2 text-[9px] font-bold ${roleBadge.color}`}>
+                        {roleBadge.label}
+                      </span>
+                    </div>
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       {user?.email ?? 'komal.dharma@applyai.com'}
                     </p>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  
+                  {/* Switch Role Submenu */}
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="cursor-pointer text-xs font-semibold">
+                      <Briefcase className="mr-2 h-4 w-4 text-indigo-500" />
+                      Switch Portal Role
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-48 rounded-xl">
+                      <DropdownMenuItem onClick={() => handleSwitchRole('student')} className="cursor-pointer text-xs">
+                        <GraduationCap className="mr-2 h-4 w-4 text-indigo-500" />
+                        Student / Job Seeker
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleSwitchRole('recruiter')} className="cursor-pointer text-xs">
+                        <Briefcase className="mr-2 h-4 w-4 text-blue-500" />
+                        Recruiter / Employer
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleSwitchRole('admin')} className="cursor-pointer text-xs">
+                        <ShieldCheck className="mr-2 h-4 w-4 text-emerald-500" />
+                        Admin Console
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleSwitchRole('super_admin')} className="cursor-pointer text-xs">
+                        <ShieldAlert className="mr-2 h-4 w-4 text-amber-500" />
+                        Super Admin Control
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+
                   <DropdownMenuItem asChild>
-                    <Link href="/profile" className="cursor-pointer">
+                    <Link href="/profile" className="cursor-pointer text-xs font-medium">
                       <UserIcon className="mr-2 h-4 w-4 text-slate-400" />
                       My Profile
                     </Link>
                   </DropdownMenuItem>
+
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleLogout}
-                    className="cursor-pointer text-rose-600 focus:text-rose-600 dark:text-rose-400"
+                    className="cursor-pointer text-rose-600 focus:text-rose-600 dark:text-rose-400 text-xs font-semibold"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     Log out
