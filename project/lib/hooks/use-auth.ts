@@ -13,7 +13,7 @@ export function useRegister() {
   return useMutation<
     RegisterResponse,
     ApiError,
-    { email: string; password: string; firstName?: string; lastName?: string }
+    { email: string; password: string; firstName?: string; lastName?: string; role?: string }
   >({
     mutationFn: (body) => apiRequest<RegisterResponse>('/auth/register', {
       method: 'POST',
@@ -23,7 +23,7 @@ export function useRegister() {
 }
 
 export function useLogin() {
-  return useMutation<LoginResponse, ApiError, { email: string; password: string }>({
+  return useMutation<LoginResponse, ApiError, { email: string; password: string; selectedRole: string }>({
     mutationFn: (body) =>
       apiRequest<LoginResponse>('/auth/login', { method: 'POST', body }),
   });

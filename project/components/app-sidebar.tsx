@@ -29,9 +29,16 @@ import {
   Users,
   ShieldAlert,
   PlusCircle,
+  UploadCloud,
+  Scale,
   Bot,
   Mic,
   Layers,
+  TrendingUp,
+  AlertTriangle,
+  FileSpreadsheet,
+  CheckCircle2,
+  Sliders,
   Pin,
   PinOff,
 } from 'lucide-react';
@@ -54,11 +61,12 @@ const getRoleNavigation = (role: UserRole = 'student'): { core: NavItem[]; secon
   if (role === 'recruiter') {
     return {
       core: [
-        { href: '/dashboard/recruiter', label: 'Overview', icon: LayoutDashboard },
-        { href: '/dashboard/recruiter?tab=funnel', label: 'AI Recruitment Funnel', icon: Layers, badge: 'FUNNEL' },
-        { href: '/dashboard/recruiter?tab=jobs', label: 'Job Postings', icon: Briefcase, badge: 'JOBS' },
+        {href: '/dashboard/recruiter', label: 'Overview', icon: LayoutDashboard },
         { href: '/dashboard/recruiter?tab=candidates', label: 'Candidate Intake', icon: Users, badge: 'ATS' },
         { href: '/dashboard/recruiter?tab=interviews', label: 'Voice Screening', icon: Mic, badge: 'VOICE' },
+        { href: '/dashboard/recruiter?tab=offers', label: 'Offer Letters', icon: FileText, badge: 'OFFERS' },
+        { href: '/dashboard/recruiter?tab=jobs', label: 'Job Postings', icon: Briefcase, badge: 'JOBS' },
+        { href: '/dashboard/recruiter?tab=analytics', label: 'Hiring Analytics', icon: Target, badge: 'ANALYTICS' },
         { href: '/sourcing', label: 'AI Sourcing Agent', icon: Bot, badge: 'AGENT' },
       ],
       secondary: [
@@ -71,9 +79,13 @@ const getRoleNavigation = (role: UserRole = 'student'): { core: NavItem[]; secon
     return {
       core: [
         { href: '/dashboard/admin', label: 'Admin Console', icon: ShieldCheck },
-        { href: '/jobs', label: 'Job Listing Moderation', icon: Briefcase },
+        { href: '/admin/performance', label: 'Team Performance', icon: Users, badge: 'TEAM' },
+        { href: '/admin/analytics', label: 'Pipeline & Analytics', icon: TrendingUp, badge: 'HIRING' },
+        { href: '/admin/operations', label: 'Operations & SLA', icon: AlertTriangle, badge: 'SLA' },
+        { href: '/admin/reports', label: 'Approvals & Reports', icon: FileSpreadsheet, badge: 'EXEC' },
       ],
       secondary: [
+        { href: '/jobs', label: 'Job Listing Moderation', icon: Briefcase },
         { href: '/profile', label: 'User Directory', icon: Users },
       ],
     };
@@ -190,6 +202,122 @@ export function AppSidebar({
 
       {/* Sidebar Navigation */}
       <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6 scrollbar-none">
+        {/* Recruiter Top Priority Quick Actions */}
+        {role === 'recruiter' && (
+          <div className="space-y-1.5 pb-2 border-b border-slate-100 dark:border-slate-800/60">
+            {(!isCollapsed || isOpenMobile) && (
+              <p className="px-3 text-[10px] font-bold tracking-wider text-indigo-600 dark:text-indigo-400 uppercase">
+                High Priority Actions
+              </p>
+            )}
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-create-job'));
+                onCloseMobile?.();
+              }}
+              className="w-full group flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-300 border border-slate-200/80 dark:border-slate-800 transition-all text-left shadow-2xs"
+              title={isCollapsed ? 'Post New Job' : undefined}
+            >
+              <PlusCircle className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+              {(!isCollapsed || isOpenMobile) && <span className="truncate flex-1 font-bold">Post New Job</span>}
+            </button>
+
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-bulk-upload'));
+                onCloseMobile?.();
+              }}
+              className="w-full group flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-300 border border-slate-200/80 dark:border-slate-800 transition-all text-left shadow-2xs"
+              title={isCollapsed ? 'Bulk Upload Resumes' : undefined}
+            >
+              <UploadCloud className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+              {(!isCollapsed || isOpenMobile) && <span className="truncate flex-1 font-bold">Bulk Upload Resumes</span>}
+            </button>
+
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-ai-jd'));
+                onCloseMobile?.();
+              }}
+              className="w-full group flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-950/50 dark:hover:text-purple-300 border border-slate-200/80 dark:border-slate-800 transition-all text-left shadow-2xs"
+              title={isCollapsed ? 'AI JD Generator' : undefined}
+            >
+              <Sparkles className="h-4 w-4 shrink-0 text-purple-600 dark:text-purple-400" />
+              {(!isCollapsed || isOpenMobile) && <span className="truncate flex-1 font-bold">AI JD Generator</span>}
+            </button>
+
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('open-compare'));
+                onCloseMobile?.();
+              }}
+              className="w-full group flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-300 border border-slate-200/80 dark:border-slate-800 transition-all text-left shadow-2xs"
+              title={isCollapsed ? 'Compare Candidates' : undefined}
+            >
+              <Scale className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+              {(!isCollapsed || isOpenMobile) && <span className="truncate flex-1 font-bold">Compare Candidates</span>}
+            </button>
+          </div>
+        )}
+
+        {/* Admin Top Priority Quick Actions */}
+        {role === 'admin' && (
+          <div className="space-y-1.5 pb-2 border-b border-slate-100 dark:border-slate-800/60">
+            {(!isCollapsed || isOpenMobile) && (
+              <p className="px-3 text-[10px] font-bold tracking-wider text-emerald-600 dark:text-emerald-400 uppercase">
+                Admin Quick Actions
+              </p>
+            )}
+            <button
+              onClick={() => {
+                window.location.href = '/admin/reports';
+                onCloseMobile?.();
+              }}
+              className="w-full group flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-300 border border-slate-200/80 dark:border-slate-800 transition-all text-left shadow-2xs"
+              title={isCollapsed ? 'Review Approvals' : undefined}
+            >
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              {(!isCollapsed || isOpenMobile) && <span className="truncate flex-1 font-bold">Review Approvals</span>}
+            </button>
+
+            <button
+              onClick={() => {
+                window.location.href = '/admin/performance';
+                onCloseMobile?.();
+              }}
+              className="w-full group flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-300 border border-slate-200/80 dark:border-slate-800 transition-all text-left shadow-2xs"
+              title={isCollapsed ? 'Rebalance Workload' : undefined}
+            >
+              <Sliders className="h-4 w-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+              {(!isCollapsed || isOpenMobile) && <span className="truncate flex-1 font-bold">Rebalance Workload</span>}
+            </button>
+
+            <button
+              onClick={() => {
+                window.location.href = '/admin/operations';
+                onCloseMobile?.();
+              }}
+              className="w-full group flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-950/50 dark:hover:text-amber-300 border border-slate-200/80 dark:border-slate-800 transition-all text-left shadow-2xs"
+              title={isCollapsed ? 'Check SLA Warnings' : undefined}
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+              {(!isCollapsed || isOpenMobile) && <span className="truncate flex-1 font-bold">Check SLA Warnings</span>}
+            </button>
+
+            <button
+              onClick={() => {
+                window.location.href = '/admin/reports';
+                onCloseMobile?.();
+              }}
+              className="w-full group flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-purple-950/50 dark:hover:text-purple-300 border border-slate-200/80 dark:border-slate-800 transition-all text-left shadow-2xs"
+              title={isCollapsed ? 'Export Reports' : undefined}
+            >
+              <FileSpreadsheet className="h-4 w-4 shrink-0 text-purple-600 dark:text-purple-400" />
+              {(!isCollapsed || isOpenMobile) && <span className="truncate flex-1 font-bold">Export Reports</span>}
+            </button>
+          </div>
+        )}
+
         {/* Core Navigation */}
         <div className="space-y-1">
           {(!isCollapsed || isOpenMobile) && (

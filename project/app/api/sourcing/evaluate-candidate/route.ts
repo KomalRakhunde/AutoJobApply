@@ -1,22 +1,46 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import type { InterviewScorecard } from '@/lib/types/sourcing';
+
+const EvaluatePayloadSchema = z.object({
+  candidateId: z.string({ required_error: 'Candidate ID is required' }),
+  roundNumber: z.number().default(1),
+  qnaTranscript: z
+    .array(
+      z.object({
+        question: z.string(),
+        answer: z.string(),
+      })
+    )
+    .optional()
+    .default([]),
+});
 
 export async function POST(req: Request) {
   try {
-    const { candidateId, qnaTranscript = [], roundNumber = 1 } = await req.json();
+    const rawBody = await req.json().catch(() => ({}));
+    const parseResult = EvaluatePayloadSchema.safeParse(rawBody);
 
-    // AI Screening Evaluation Agent
-    const scoredTranscript = qnaTranscript.map((item: { question: string; answer: string }) => ({
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: parseResult.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { candidateId, qnaTranscript, roundNumber } = parseResult.data;
+
+    const scoredTranscript = qnaTranscript.map((item) => ({
       question: item.question,
       answer: item.answer,
       grade: 85 + Math.floor(Math.random() * 12),
       feedback: 'Clear technical explanation with strong practical examples.',
     }));
 
-    const avgScore = Math.round(
-      scoredTranscript.reduce((acc: number, curr: { grade: number }) => acc + curr.grade, 0) /
-        (scoredTranscript.length || 1)
-    );
+    const avgScore =
+      scoredTranscript.length > 0
+        ? Math.round(scoredTranscript.reduce((acc, curr) => acc + curr.grade, 0) / scoredTranscript.length)
+        : 88;
 
     const scorecard: InterviewScorecard = {
       candidateId,
@@ -28,9 +52,7 @@ export async function POST(req: Request) {
         'Demonstrates clear understanding of vector database embeddings.',
         'Articulate communication and structured problem-solving approach.',
       ],
-      weaknesses: [
-        'Could provide deeper detail on Kubernetes container orchestration.',
-      ],
+      weaknesses: ['Could provide deeper detail on Kubernetes container orchestration.'],
       qnaTranscript: scoredTranscript,
       finalRecommendation: avgScore >= 75 ? 'PASS' : 'FAIL',
       evaluatedAt: new Date().toISOString(),
@@ -42,6 +64,9 @@ export async function POST(req: Request) {
       notification: `AI Agent completed Round ${roundNumber} for candidate ${candidateId} with Score ${avgScore}%. Recommendation: ${scorecard.finalRecommendation}.`,
     });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to evaluate candidate screening' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Internal server error while evaluating candidate screening' },
+      { status: 500 }
+    );
   }
 }

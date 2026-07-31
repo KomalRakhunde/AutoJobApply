@@ -8,6 +8,7 @@ import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Calendar,
   KanbanSquare,
@@ -25,6 +26,12 @@ import {
   Mail,
   Zap,
   ArrowRight,
+  Sparkles,
+  RefreshCw,
+  Clock,
+  TrendingUp,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 
 import RecruiterDashboardPage from './recruiter/page';
@@ -83,286 +90,197 @@ export default function DashboardPage() {
   const pinnedFeatureInfos = ALL_PINNABLE_FEATURES.filter((f) => pinnedHrefs.includes(f.href));
 
   return (
-    <PageShell
-      title={`Welcome back, ${formattedUsername} 👋`}
-      subtitle="Here is your clean application status overview."
-      actions={
-        hasPins ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={clearAllPins}
-            className="gap-2 text-xs border-amber-300 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20"
-          >
-            <PinOff className="h-3.5 w-3.5" /> Clear Pinned Views ({pinnedHrefs.length})
-          </Button>
-        ) : null
-      }
-    >
-      <div className="space-y-6">
-        {/* 1. SIMPLE TOP METRICS SUMMARY */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+    <PageShell title="" subtitle="">
+      <div className="max-w-6xl mx-auto space-y-6 pb-16 animate-fade-in px-2 sm:px-4 font-mono text-xs">
+        {/* Top Header - Matching Super Admin Layout & Spacing */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-b border-slate-200/80 dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white font-extrabold text-lg shadow-md shadow-indigo-500/20">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Student Portal <span className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-normal">v2.4.0</span>
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">WELCOME BACK, {formattedUsername.toUpperCase()}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 self-end sm:self-auto">
+            {hasPins && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearAllPins}
+                className="gap-2 text-xs font-mono font-bold border-amber-300 bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 rounded-xl"
+              >
+                <PinOff className="h-3.5 w-3.5" /> Clear Pins ({pinnedHrefs.length})
+              </Button>
+            )}
+            <Avatar className="h-9 w-9 border border-indigo-500/40">
+              <AvatarFallback className="bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-extrabold text-xs">
+                {formattedUsername.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        </div>
+
+        {/* 4 Top Metric KPI Cards (Live Database Metrics Only) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
+          <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-indigo-500 bg-white dark:bg-[#0f111a] bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent p-5 space-y-2 shadow-sm dark:shadow-xl hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300">
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span className="text-xs font-semibold uppercase tracking-wider">Total Applied</span>
-              <Briefcase className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">APPLICATIONS</span>
+              <Briefcase className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
             </div>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-3xl font-extrabold text-slate-900 dark:text-white">{totalApplied}</span>
-              <span className="text-xs text-slate-400">Submitted</span>
-            </div>
+            <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">{totalApplied}</div>
+            <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">Submitted</p>
           </Card>
 
-          <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+          <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-cyan-400 bg-white dark:bg-[#0f111a] bg-gradient-to-r from-cyan-500/10 via-transparent to-transparent p-5 space-y-2 shadow-sm dark:shadow-xl hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(34,211,238,0.15)] transition-all duration-300">
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span className="text-xs font-semibold uppercase tracking-wider">In Progress</span>
-              <FileCheck className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">IN PIPELINE</span>
+              <Clock className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
             </div>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-3xl font-extrabold text-slate-900 dark:text-white">{inProgress}</span>
-              <span className="text-xs text-slate-400">Active</span>
-            </div>
+            <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">{inProgress}</div>
+            <p className="text-[11px] font-bold text-cyan-600 dark:text-cyan-400">Under Review</p>
           </Card>
 
-          <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+          <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-amber-500 bg-white dark:bg-[#0f111a] bg-gradient-to-r from-amber-500/10 via-transparent to-transparent p-5 space-y-2 shadow-sm dark:shadow-xl hover:border-amber-500/50 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all duration-300">
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span className="text-xs font-semibold uppercase tracking-wider">Scheduled Interviews</span>
-              <Calendar className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">INTERVIEWS</span>
+              <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             </div>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">{interviewApps.length}</span>
-              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Rounds</span>
-            </div>
+            <div className="text-4xl font-black text-amber-600 dark:text-amber-400 tracking-tight">{interviewApps.length}</div>
+            <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400">Scheduled</p>
           </Card>
 
-          <Card className="rounded-2xl border border-slate-200/80 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+          <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-emerald-400 bg-white dark:bg-[#0f111a] bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent p-5 space-y-2 shadow-sm dark:shadow-xl hover:border-emerald-400/50 hover:shadow-[0_0_20px_rgba(52,211,153,0.15)] transition-all duration-300">
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span className="text-xs font-semibold uppercase tracking-wider">Offers Received</span>
-              <Award className="h-4.5 w-4.5 text-purple-600 dark:text-purple-400" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">OFFERS</span>
+              <Award className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-3xl font-extrabold text-purple-600 dark:text-purple-400">{offersCount}</span>
-              <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">Offers</span>
-            </div>
+            <div className="text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-tight">{offersCount}</div>
+            <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Received</p>
           </Card>
         </div>
 
-        {/* 2. PINNED FEATURE VIEWS (DISPLAYED ONLY IF PINNED BY USER FROM LEFT SIDEBAR) */}
-        {hasPins && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold tracking-wider text-slate-400 uppercase flex items-center gap-2">
-                <Pin className="h-4 w-4 text-amber-500 fill-amber-500" />
-                Pinned Feature Workspace ({pinnedFeatureInfos.length})
-              </h3>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
+        {/* Pinned Features Row if pinned */}
+        {pinnedFeatureInfos.length > 0 && (
+          <div className="space-y-3 font-mono">
+            <h3 className="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
+              <Pin className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              <span>Pinned Quick Launch</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {pinnedFeatureInfos.map((feat) => (
-                <PinnedFeatureCard
+                <Card
                   key={feat.href}
-                  feature={feat}
-                  onUnpin={() => togglePin(feat.href)}
-                  applications={appsList}
-                />
+                  className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-indigo-500 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent p-5 space-y-3 shadow-sm dark:shadow-xl hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300"
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="font-extrabold text-slate-900 dark:text-white text-sm">{feat.label}</span>
+                    <button onClick={() => togglePin(feat.href)} className="text-amber-500 hover:text-amber-600">
+                      <Pin className="h-3.5 w-3.5 fill-current" />
+                    </button>
+                  </div>
+                  <p className="text-slate-500 dark:text-slate-400 font-normal leading-relaxed">{feat.description}</p>
+                  <Link href={feat.href}>
+                    <Button size="sm" className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs gap-2">
+                      Launch Tool <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </Link>
+                </Card>
               ))}
             </div>
           </div>
         )}
 
-        {/* 3. SIMPLE & SORTED RECENT APPLICATIONS TABLE */}
-        <Card className="rounded-2xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between p-6 pb-4">
+        {/* Recent Applications Card with Left Accent & Hover Glow */}
+        <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-indigo-500 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent p-6 space-y-5 shadow-sm dark:shadow-2xl hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
             <div>
-              <CardTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <KanbanSquare className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />
-                Recent Applications
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500 mt-0.5">
-                Sorted overview of your job applications
-              </CardDescription>
+              <h3 className="font-black text-slate-900 dark:text-white text-base">Recent Applications</h3>
+              <p className="text-slate-500 dark:text-slate-400 font-normal">Active candidate submissions</p>
             </div>
-            <Button size="sm" variant="ghost" className="gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400" asChild>
-              <Link href="/applications">
-                Full Tracker <ChevronRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
+            <Link href="/applications">
+              <Button variant="ghost" size="sm" className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 gap-1">
+                View All Applications <ChevronRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
 
-          <CardContent className="px-6 pb-6 pt-0">
-            {displayApps.length === 0 ? (
-              <div className="p-10 text-center space-y-3 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                <Briefcase className="h-8 w-8 text-indigo-600 dark:text-indigo-400 mx-auto" />
-                <p className="font-bold text-sm text-slate-900 dark:text-white">No active applications yet</p>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Browse open positions in Job Search & Matching to get started.
-                </p>
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs px-4" asChild>
-                  <Link href="/jobs">Browse Job Openings</Link>
-                </Button>
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono">
+            {displayApps.length > 0 ? (
+              displayApps.map((app) => (
+                <div
+                  key={app.id}
+                  className="p-4 rounded-2xl bg-slate-50 dark:bg-[#121522] border border-slate-200/60 dark:border-slate-800/80 space-y-2 hover:border-indigo-500/40 transition-all shadow-sm cursor-pointer"
+                >
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-extrabold text-slate-900 dark:text-white text-sm">{app.title}</h4>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${app.statusColor}`}>
+                      {app.status}
+                    </span>
+                  </div>
+                  <p className="text-slate-500 dark:text-slate-400 font-normal text-xs">{app.company}</p>
+                  <p className="text-[10px] text-slate-400">Applied on {app.date}</p>
+                </div>
+              ))
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-100 text-slate-400 dark:border-slate-800/80">
-                      <th className="pb-3 font-semibold uppercase tracking-wider text-[10px]">Position & Company</th>
-                      <th className="pb-3 font-semibold uppercase tracking-wider text-[10px]">Date Applied</th>
-                      <th className="pb-3 font-semibold uppercase tracking-wider text-[10px] text-right">Current Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {displayApps.map((app) => (
-                      <tr key={app.id} className="group transition-colors hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                        <td className="py-3.5 font-medium text-slate-900 dark:text-white">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 font-bold text-xs">
-                              <Building2 className="h-4 w-4" />
-                            </div>
-                            <div>
-                              <p className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-indigo-600 transition-colors">
-                                {app.title}
-                              </p>
-                              <p className="text-xs text-slate-400">{app.company}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3.5 text-slate-500 dark:text-slate-400 font-medium">{app.date}</td>
-                        <td className="py-3.5 text-right">
-                          <span className={`inline-block rounded-xl border px-3 py-1 text-xs font-bold ${app.statusColor}`}>
-                            {app.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="col-span-2 py-8 text-center text-slate-400">
+                No active applications submitted yet. Browse jobs to apply!
               </div>
             )}
-          </CardContent>
+          </div>
         </Card>
+
+        {/* Student Toolkit Launcher Grid */}
+        <div className="space-y-4 font-mono">
+          <h3 className="font-black text-slate-900 dark:text-white text-lg">AI Student Career Tools</h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-cyan-400 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-cyan-500/10 via-transparent to-transparent p-5 space-y-3 shadow-sm dark:shadow-xl hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(34,211,238,0.15)] transition-all duration-300">
+              <div className="p-3 rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 w-fit">
+                <Briefcase className="h-5 w-5" />
+              </div>
+              <h4 className="font-extrabold text-slate-900 dark:text-white text-base">Browse Job Board</h4>
+              <p className="text-slate-500 dark:text-slate-400 font-normal">Explore verified enterprise requisitions with AI match scores.</p>
+              <Link href="/jobs">
+                <Button className="w-full rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs gap-2 mt-2">
+                  Open Job Board <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </Card>
+
+            <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-amber-500 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-amber-500/10 via-transparent to-transparent p-5 space-y-3 shadow-sm dark:shadow-xl hover:border-amber-500/50 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)] transition-all duration-300">
+              <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 w-fit">
+                <FileText className="h-5 w-5" />
+              </div>
+              <h4 className="font-extrabold text-slate-900 dark:text-white text-base">AI Resume Optimizer</h4>
+              <p className="text-slate-500 dark:text-slate-400 font-normal">Parse PDF resumes & get instant ATS keyword alignment reports.</p>
+              <Link href="/resume">
+                <Button className="w-full rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs gap-2 mt-2">
+                  Launch Resume Studio <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </Card>
+
+            <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-purple-500 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-purple-500/10 via-transparent to-transparent p-5 space-y-3 shadow-sm dark:shadow-xl hover:border-purple-500/50 hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all duration-300">
+              <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 w-fit">
+                <MessageSquare className="h-5 w-5" />
+              </div>
+              <h4 className="font-extrabold text-slate-900 dark:text-white text-base">AI Interview Studio</h4>
+              <p className="text-slate-500 dark:text-slate-400 font-normal">Practice technical mock interviews with instant voice AI scoring.</p>
+              <Link href="/interview-prep">
+                <Button className="w-full rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs gap-2 mt-2">
+                  Start Practice Studio <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            </Card>
+          </div>
+        </div>
       </div>
     </PageShell>
-  );
-}
-
-function PinnedFeatureCard({
-  feature,
-  onUnpin,
-  applications,
-}: {
-  feature: (typeof ALL_PINNABLE_FEATURES)[0];
-  onUnpin: () => void;
-  applications: any[];
-}) {
-  return (
-    <Card className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-sm transition-all hover:shadow-md">
-      <CardHeader className="p-5 pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-600/20">
-              {feature.id === 'resume' && <Target className="h-5 w-5" />}
-              {feature.id === 'jobs' && <Briefcase className="h-5 w-5" />}
-              {feature.id === 'applications' && <KanbanSquare className="h-5 w-5" />}
-              {feature.id === 'auto-apply' && <Zap className="h-5 w-5" />}
-              {feature.id === 'cover-letter' && <FileText className="h-5 w-5" />}
-              {feature.id === 'interview-prep' && <MessageSquare className="h-5 w-5" />}
-              {feature.id === 'career-coach' && <Compass className="h-5 w-5" />}
-              {feature.id === 'email-sync' && <Mail className="h-5 w-5" />}
-            </div>
-            <div>
-              <CardTitle className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                {feature.label}
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                {feature.description}
-              </CardDescription>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onUnpin}
-            className="rounded-lg p-1.5 text-amber-500 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
-            title="Unpin feature from dashboard"
-          >
-            <Pin className="h-4 w-4 fill-amber-500" />
-          </button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="p-5 pt-0">
-        <div className="mt-2 rounded-xl bg-slate-50 p-3.5 dark:bg-slate-800/50 space-y-2">
-          {feature.id === 'resume' && (
-            <div className="space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-700 dark:text-slate-300">Resume ATS Score</span>
-                <span className="font-extrabold text-emerald-600 dark:text-emerald-400">85% Match</span>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-emerald-500 to-indigo-600 w-[85%]" />
-              </div>
-            </div>
-          )}
-
-          {feature.id === 'jobs' && (
-            <div className="text-xs space-y-1">
-              <p className="font-semibold text-slate-700 dark:text-slate-300">AI Job Matcher Active</p>
-              <p className="text-[11px] text-slate-500">Top matches found for Full Stack & React Developer roles.</p>
-            </div>
-          )}
-
-          {feature.id === 'applications' && (
-            <div className="grid grid-cols-4 gap-2 text-center text-xs">
-              <div className="rounded-lg bg-white p-1.5 dark:bg-slate-900 border">
-                <p className="font-extrabold text-indigo-600">{applications.length}</p>
-                <p className="text-[9px] text-slate-400">Applied</p>
-              </div>
-              <div className="rounded-lg bg-white p-1.5 dark:bg-slate-900 border">
-                <p className="font-extrabold text-amber-500">1</p>
-                <p className="text-[9px] text-slate-400">Assess</p>
-              </div>
-              <div className="rounded-lg bg-white p-1.5 dark:bg-slate-900 border">
-                <p className="font-extrabold text-emerald-500">1</p>
-                <p className="text-[9px] text-slate-400">Interview</p>
-              </div>
-              <div className="rounded-lg bg-white p-1.5 dark:bg-slate-900 border">
-                <p className="font-extrabold text-purple-500">0</p>
-                <p className="text-[9px] text-slate-400">Offer</p>
-              </div>
-            </div>
-          )}
-
-          {feature.id === 'auto-apply' && (
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-700 dark:text-slate-300">Auto-Apply Status</span>
-              <Badge className="bg-emerald-500 text-white text-[10px]">ACTIVE (8/15)</Badge>
-            </div>
-          )}
-
-          {feature.id === 'cover-letter' && (
-            <p className="text-xs text-slate-500">Generate tailored cover letters for specific job roles.</p>
-          )}
-
-          {feature.id === 'interview-prep' && (
-            <p className="text-xs text-slate-500">AI Mock interview simulator & behavioral questions practice.</p>
-          )}
-
-          {feature.id === 'career-coach' && (
-            <p className="text-xs text-slate-500">Target Role: Senior Full Stack Engineer • Missing skills roadmap.</p>
-          )}
-
-          {feature.id === 'email-sync' && (
-            <p className="text-xs text-slate-500">Gmail Inbox scanner connected & auto-scanning for invites.</p>
-          )}
-        </div>
-
-        <div className="mt-3 flex justify-end">
-          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs gap-1.5" asChild>
-            <Link href={feature.href}>
-              Open {feature.label.split(' ')[0]} <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
   );
 }

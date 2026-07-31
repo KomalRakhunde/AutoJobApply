@@ -1,20 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Bot,
   Zap,
@@ -30,6 +24,10 @@ import {
   Activity,
   Layers,
   Sparkles,
+  RefreshCw,
+  Plus,
+  X,
+  CheckCircle2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { AutoApplyConfig, AutoApplyLog } from '@/lib/types';
@@ -41,45 +39,6 @@ const DEFAULT_PORTALS = [
   { name: 'Glassdoor', connected: false, lastSynced: 'Not connected' },
   { name: 'Wellfound (AngelList)', connected: true, lastSynced: '30 mins ago' },
   { name: 'Foundit (Monster)', connected: false, lastSynced: 'Not connected' },
-];
-
-const INITIAL_LOGS: AutoApplyLog[] = [
-  {
-    id: 'log-1',
-    jobTitle: 'Senior Full Stack Engineer',
-    company: 'TechCorp Global',
-    portal: 'LinkedIn Jobs',
-    timestamp: '2 mins ago',
-    status: 'submitted',
-    matchScore: 94,
-  },
-  {
-    id: 'log-2',
-    jobTitle: 'Frontend Developer (React/Next.js)',
-    company: 'Innovate AI',
-    portal: 'Naukri.com',
-    timestamp: '15 mins ago',
-    status: 'submitted',
-    matchScore: 88,
-  },
-  {
-    id: 'log-3',
-    jobTitle: 'Junior Developer (Entry Level)',
-    company: 'Staffing Solutions Inc',
-    portal: 'Indeed',
-    timestamp: '32 mins ago',
-    status: 'skipped',
-    matchScore: 42,
-  },
-  {
-    id: 'log-4',
-    jobTitle: 'Lead Next.js Architect',
-    company: 'CloudPulse Cloud',
-    portal: 'Wellfound',
-    timestamp: '1 hour ago',
-    status: 'submitted',
-    matchScore: 91,
-  },
 ];
 
 export default function AutoApplyPage() {
@@ -95,15 +54,36 @@ export default function AutoApplyPage() {
     connectedPortals: DEFAULT_PORTALS,
   });
 
-  const [logs, setLogs] = useState<AutoApplyLog[]>(INITIAL_LOGS);
+  const [logs, setLogs] = useState<AutoApplyLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [newSkill, setNewSkill] = useState('');
   const [newExclude, setNewExclude] = useState('');
+
+  useEffect(() => {
+    async function loadLogs() {
+      setIsLoading(true);
+      try {
+        const res = await fetch('/api/auto-apply/logs');
+        if (res.ok) {
+          const data = await res.json();
+          setLogs(data.logs || []);
+        } else {
+          setLogs([]);
+        }
+      } catch {
+        setLogs([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadLogs();
+  }, []);
 
   const toggleAutomation = () => {
     const nextState = !config.enabled;
     setConfig((prev) => ({ ...prev, enabled: nextState }));
     toast({
-      title: nextState ? 'Auto-Apply Automation Activated' : 'Auto-Apply Automation Paused',
+      title: nextState ? '⚡ Auto-Apply Engine Activated' : '⏸️ Auto-Apply Engine Paused',
       description: nextState
         ? 'AI is now actively monitoring portals and applying to matching roles.'
         : 'Automation engine has been safely paused.',
@@ -144,277 +124,249 @@ export default function AutoApplyPage() {
     }));
   };
 
-  const triggerInstantRun = () => {
-    const mockLog: AutoApplyLog = {
-      id: `log-${Date.now()}`,
-      jobTitle: 'Full Stack React & Node Engineer',
-      company: 'NextGen AI Labs',
-      portal: 'LinkedIn Jobs',
-      timestamp: 'Just now',
-      status: 'submitted',
-      matchScore: 96,
-    };
-    setLogs((prev) => [mockLog, ...prev]);
+  const triggerInstantRun = async () => {
     toast({
-      title: 'Manual Cycle Triggered',
-      description: 'Applied to NextGen AI Labs (96% Match). Confirmation saved to tracker.',
+      title: '⚡ Instant Cycle Triggered',
+      description: 'Running auto-apply cycle against matched open requisitions...',
     });
+    try {
+      const res = await fetch('/api/auto-apply/run', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.logs) {
+          setLogs((prev) => [...data.logs, ...prev]);
+        }
+      }
+    } catch {
+      // Handled
+    }
   };
 
   return (
-    <PageShell
-      title="Auto-Apply Engine & Smart Rules"
-      subtitle="Automate job applications across major portals with precision AI matching and smart filter rules."
-      actions={
-        <div className="flex items-center gap-3">
-          <Button
-            variant={config.enabled ? 'default' : 'outline'}
-            className="gap-2 shadow-md"
-            onClick={toggleAutomation}
-          >
-            {config.enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-            {config.enabled ? 'Pause Auto-Apply' : 'Start Auto-Apply'}
-          </Button>
-          <Button variant="secondary" className="gap-2" onClick={triggerInstantRun}>
-            <Zap className="h-4 w-4 text-amber-500" /> Run Cycle Now
-          </Button>
+    <PageShell title="" subtitle="">
+      <div className="max-w-6xl mx-auto space-y-6 pb-16 animate-fade-in px-2 sm:px-4 font-mono text-xs">
+        {/* Top Header - Executive Suite Standard */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-b border-slate-200/80 dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white font-extrabold text-lg shadow-md shadow-indigo-500/20">
+              <Bot className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                Auto-Apply Engine <span className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-normal">v2.4.0</span>
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">AUTO-APPLY BOT & MATCHING RULES</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 self-end sm:self-auto">
+            <Button
+              variant={config.enabled ? 'default' : 'outline'}
+              size="sm"
+              onClick={toggleAutomation}
+              className={`gap-2 rounded-xl text-xs font-mono font-bold ${
+                config.enabled ? 'bg-indigo-600 text-white shadow-sm' : 'border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              {config.enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              <span>{config.enabled ? 'Pause Bot' : 'Start Bot'}</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={triggerInstantRun}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs font-bold rounded-xl gap-1.5 shadow-sm"
+            >
+              <Zap className="h-3.5 w-3.5" />
+              <span>Run Cycle Now</span>
+            </Button>
+            <Avatar className="h-9 w-9 border border-indigo-500/40">
+              <AvatarFallback className="bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-extrabold text-xs">
+                KR
+              </AvatarFallback>
+            </Avatar>
+          </div>
         </div>
-      }
-    >
-      <div className="space-y-6">
-        {/* Status banner */}
-        <Card className={`border-2 transition-all ${config.enabled ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-amber-500/40 bg-amber-500/5'}`}>
-          <CardContent className="flex flex-col items-start justify-between gap-4 p-5 sm:flex-row sm:items-center">
+
+        {/* Status Banner Card with Left Accent & Hover Glow */}
+        <Card className={`rounded-3xl border ${config.enabled ? 'border-emerald-500/40 border-l-8 border-l-emerald-500 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent' : 'border-amber-500/40 border-l-8 border-l-amber-500 bg-gradient-to-r from-amber-500/10 via-transparent to-transparent'} p-6 space-y-3 shadow-sm dark:shadow-2xl hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] transition-all duration-300`}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${config.enabled ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'}`}>
-                <Bot className="h-6 w-6" />
+              <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${config.enabled ? 'bg-emerald-600 text-white shadow-md' : 'bg-amber-600 text-white shadow-md'}`}>
+                <Bot className="h-5 w-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base font-semibold">
-                    Automation Status: {config.enabled ? 'Active & Monitoring' : 'Paused'}
+                  <h3 className="font-black text-slate-900 dark:text-white text-base">
+                    Automation Engine: {config.enabled ? 'ACTIVE & MONITORING' : 'PAUSED'}
                   </h3>
-                  <Badge variant={config.enabled ? 'default' : 'secondary'} className={config.enabled ? 'bg-emerald-500 hover:bg-emerald-600' : ''}>
+                  <Badge className={config.enabled ? 'bg-emerald-500 text-white font-bold text-[10px]' : 'bg-amber-500 text-white font-bold text-[10px]'}>
                     {config.enabled ? 'RUNNING' : 'PAUSED'}
                   </Badge>
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">
                   {config.enabled
                     ? 'AI scans job portals every 5 minutes and auto-submits applications matching your rules.'
-                    : 'Auto-apply is currently paused. Resume anytime to resume automated submissions.'}
+                    : 'Auto-apply is currently paused. Click Start Bot anytime to resume.'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-primary" /> Interval: 5 mins
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Activity className="h-4 w-4 text-primary" /> Cap: {config.maxDailyApplications}/day
-              </div>
+
+            <div className="flex items-center gap-4 text-xs font-bold text-slate-500 dark:text-slate-400">
+              <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
+                <Clock className="h-4 w-4" /> Interval: 5m
+              </span>
+              <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                <Activity className="h-4 w-4" /> Daily Cap: {config.maxDailyApplications}/day
+              </span>
             </div>
-          </CardContent>
+          </div>
         </Card>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Left Panel: Smart Filter Rules */}
-          <div className="space-y-6 lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <SlidersHorizontal className="h-5 w-5 text-primary" /> Smart Matching Rules
-                </CardTitle>
-                <CardDescription>
-                  Define non-negotiable criteria. The AI will strictly skip any position failing these rules.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5">
-                      <DollarSign className="h-4 w-4 text-emerald-500" /> Minimum Salary
-                    </Label>
-                    <Input
-                      value={config.minSalary}
-                      onChange={(e) => setConfig({ ...config, minSalary: e.target.value })}
-                      placeholder="e.g. $110,000 / 20 LPA"
-                    />
-                  </div>
+        {/* 2-Column Main Layout Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-mono">
+          {/* Left Panel: Smart Rules Settings */}
+          <Card className="lg:col-span-1 rounded-3xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-indigo-500 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent p-6 space-y-5 shadow-sm dark:shadow-2xl hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                <span>Smart Filter Rules</span>
+              </h3>
+              <p className="text-slate-400 font-normal">Configure automated application parameters</p>
+            </div>
 
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5">
-                      <Briefcase className="h-4 w-4 text-blue-500" /> Experience Level
-                    </Label>
-                    <Input
-                      value={config.experienceYears}
-                      onChange={(e) => setConfig({ ...config, experienceYears: e.target.value })}
-                      placeholder="e.g. 3 - 8 years"
-                    />
-                  </div>
+            <div className="space-y-4 text-xs">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold text-slate-400 uppercase">TARGET SALARY FLOOR</Label>
+                <Input
+                  value={config.minSalary}
+                  onChange={(e) => setConfig((p) => ({ ...p, minSalary: e.target.value }))}
+                  className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#121522] font-mono text-xs text-slate-900 dark:text-white"
+                />
+              </div>
 
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-1.5">
-                      <Globe className="h-4 w-4 text-violet-500" /> Work Mode
-                    </Label>
-                    <Select
-                      value={config.workMode}
-                      onValueChange={(val: 'remote' | 'hybrid' | 'onsite' | 'any') =>
-                        setConfig({ ...config, workMode: val })
-                      }
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold text-slate-400 uppercase">REQUIRED TECH SKILLS</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={newSkill}
+                    onChange={(e) => setNewSkill(e.target.value)}
+                    placeholder="Add skill (e.g. Next.js)..."
+                    className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#121522] font-mono text-xs text-slate-900 dark:text-white"
+                  />
+                  <Button onClick={addSkill} size="sm" className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1.5 pt-2">
+                  {config.requiredSkills.map((s) => (
+                    <span key={s} className="inline-flex items-center gap-1 rounded-md bg-indigo-50 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/40 px-2 py-0.5 text-[10px] font-bold">
+                      {s}
+                      <X className="h-3 w-3 cursor-pointer hover:text-rose-500" onClick={() => removeSkill(s)} />
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5 pt-1">
+                <Label className="text-[10px] font-bold text-slate-400 uppercase">EXCLUDED COMPANIES / AGENCIES</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={newExclude}
+                    onChange={(e) => setNewExclude(e.target.value)}
+                    placeholder="Add company to block..."
+                    className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#121522] font-mono text-xs text-slate-900 dark:text-white"
+                  />
+                  <Button onClick={addExclude} size="sm" className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-1.5 pt-2">
+                  {config.excludedCompanies.map((c) => (
+                    <span key={c} className="inline-flex items-center gap-1 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-500/40 px-2 py-0.5 text-[10px] font-bold">
+                      {c}
+                      <X className="h-3 w-3 cursor-pointer hover:text-white" onClick={() => removeExclude(c)} />
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Right Panel: Portal Connections & Audit Logs */}
+          <div className="lg:col-span-2 space-y-6 font-mono">
+            {/* Connected Portals Card */}
+            <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-cyan-400 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-cyan-500/10 via-transparent to-transparent p-6 space-y-4 shadow-sm dark:shadow-2xl hover:border-cyan-400/50 hover:shadow-[0_0_20px_rgba(34,211,238,0.15)] transition-all duration-300">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                  <span>Connected Job Portals</span>
+                </h3>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">4 OF 6 CONNECTED</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {config.connectedPortals.map((p) => (
+                  <div
+                    key={p.name}
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#121522] border border-slate-200/60 dark:border-slate-800 flex items-center justify-between shadow-sm"
+                  >
+                    <div>
+                      <h4 className="font-extrabold text-slate-900 dark:text-white text-xs">{p.name}</h4>
+                      <p className="text-[10px] text-slate-400">Synced: {p.lastSynced}</p>
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${p.connected ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/40' : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400'}`}>
+                      {p.connected ? 'CONNECTED' : 'OFFLINE'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Live Audit Log Card */}
+            <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-emerald-400 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent p-6 space-y-4 shadow-sm dark:shadow-2xl hover:border-emerald-400/50 hover:shadow-[0_0_20px_rgba(52,211,153,0.15)] transition-all duration-300">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Real-time Submission Log</span>
+                </h3>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">LIVE STREAM</span>
+              </div>
+
+              <div className="space-y-3">
+                {isLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-16 w-full rounded-2xl" />
+                    <Skeleton className="h-16 w-full rounded-2xl" />
+                  </div>
+                ) : logs.length === 0 ? (
+                  <div className="py-8 text-center text-slate-400 space-y-1 font-mono">
+                    <p className="font-bold text-xs text-slate-900 dark:text-white">No submission logs recorded yet</p>
+                    <p className="text-[10px]">Click "Run Cycle Now" above to initiate automated job submissions.</p>
+                  </div>
+                ) : (
+                  logs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="p-4 rounded-2xl bg-slate-50 dark:bg-[#121522] border border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-4 hover:border-indigo-500/40 transition-all shadow-sm"
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="remote">Remote Only</SelectItem>
-                        <SelectItem value="hybrid">Hybrid Allowed</SelectItem>
-                        <SelectItem value="onsite">On-site Allowed</SelectItem>
-                        <SelectItem value="any">Any Work Mode</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Mandatory Skills */}
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-1.5">
-                    <Sparkles className="h-4 w-4 text-primary" /> Mandatory Required Technologies
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add required skill (e.g. React, Docker, Python)..."
-                      value={newSkill}
-                      onChange={(e) => setNewSkill(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') addSkill(); }}
-                    />
-                    <Button onClick={addSkill} variant="secondary">Add</Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {config.requiredSkills.map((s) => (
-                      <Badge key={s} variant="outline" className="gap-1 bg-primary/5 py-1 text-sm font-medium">
-                        {s}
-                        <button onClick={() => removeSkill(s)} className="ml-1 text-muted-foreground hover:text-foreground">
-                          ×
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Excluded Companies */}
-                <div className="space-y-3">
-                  <Label className="flex items-center gap-1.5">
-                    <ShieldAlert className="h-4 w-4 text-destructive" /> Exclude Companies & Staffing Agencies
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Company name to exclude..."
-                      value={newExclude}
-                      onChange={(e) => setNewExclude(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') addExclude(); }}
-                    />
-                    <Button onClick={addExclude} variant="secondary">Add</Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {config.excludedCompanies.map((c) => (
-                      <Badge key={c} variant="destructive" className="gap-1 py-1 text-sm font-medium">
-                        {c}
-                        <button onClick={() => removeExclude(c)} className="ml-1 opacity-70 hover:opacity-100">
-                          ×
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Live Activity Logs Stream */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Activity className="h-5 w-5 text-primary" /> Live Application Execution Logs
-                  </CardTitle>
-                  <CardDescription>Real-time stream of jobs evaluated and auto-submitted by AI</CardDescription>
-                </div>
-                <Badge variant="outline" className="gap-1 text-xs">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" /> Live Stream
-                </Badge>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {logs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="flex flex-col gap-2 rounded-xl border border-border bg-muted/20 p-3.5 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-sm">{log.jobTitle}</p>
-                        <Badge
-                          variant={log.status === 'submitted' ? 'default' : 'secondary'}
-                          className={log.status === 'submitted' ? 'bg-emerald-500' : 'bg-muted text-muted-foreground'}
-                        >
-                          {log.status === 'submitted' ? 'Auto-Submitted' : 'Skipped'}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {log.company} • <span className="font-medium text-foreground">{log.portal}</span> • {log.timestamp}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-xs font-semibold text-primary">{log.matchScore}% Match</span>
-                        <div className="h-1.5 w-20 rounded bg-muted">
-                          <div className="h-1.5 rounded bg-primary" style={{ width: `${log.matchScore}%` }} />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-extrabold text-slate-900 dark:text-white text-xs">{log.jobTitle}</h4>
+                          <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">• {log.company}</span>
                         </div>
+                        <p className="text-[10px] text-slate-400">{log.portal} • {log.timestamp}</p>
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
 
-          {/* Right Panel: Connected Portals & Daily Controls */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Layers className="h-5 w-5 text-primary" /> Connected Job Sources
-                </CardTitle>
-                <CardDescription>Portals synced for automatic job monitoring</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {config.connectedPortals.map((portal) => (
-                  <div
-                    key={portal.name}
-                    className="flex items-center justify-between rounded-xl border border-border p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${portal.connected ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground'}`}>
-                        <Building2 className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{portal.name}</p>
-                        <p className="text-xs text-muted-foreground">{portal.lastSynced}</p>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs">{log.matchScore}% Match</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${log.status === 'submitted' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/40' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/80 dark:text-amber-400 border-amber-200 dark:border-amber-500/40'}`}>
+                          {log.status.toUpperCase()}
+                        </span>
                       </div>
                     </div>
-                    <Switch
-                      checked={portal.connected}
-                      onCheckedChange={(val) => {
-                        setConfig((prev) => ({
-                          ...prev,
-                          connectedPortals: prev.connectedPortals.map((p) =>
-                            p.name === portal.name ? { ...p, connected: val } : p
-                          ),
-                        }));
-                      }}
-                    />
-                  </div>
-                ))}
-              </CardContent>
+                  ))
+                )}
+              </div>
             </Card>
           </div>
         </div>

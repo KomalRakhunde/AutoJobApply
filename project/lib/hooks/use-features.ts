@@ -396,54 +396,7 @@ export function applicationStatusLabel(s: ApplicationStatus): string {
 
 const LOCAL_EMAILS_KEY = 'applyai_local_synced_emails';
 
-const INITIAL_DEMO_EMAILS: SyncedEmail[] = [
-  {
-    id: 'email-1',
-    fromName: 'TechCorp Talent Acquisition',
-    fromEmail: 'careers@techcorp.com',
-    subject: 'Interview Invitation: Senior Full Stack Engineer at TechCorp',
-    date: 'Today, 2:15 PM',
-    snippet: 'Hi, We reviewed your application and would love to schedule a 45-minute technical interview with our engineering lead next Tuesday...',
-    category: 'interview',
-    parsedCompany: 'TechCorp',
-    parsedRole: 'Senior Full Stack Engineer',
-    parsedDate: 'Next Tuesday, 10:00 AM',
-  },
-  {
-    id: 'email-2',
-    fromName: 'Innovate AI Recruiting',
-    fromEmail: 'jobs@innovateai.com',
-    subject: 'Offer Letter — Frontend Engineer Position',
-    date: 'Yesterday',
-    snippet: 'Dear candidate, Congratulations! We are thrilled to extend a formal offer of employment for the Frontend Engineer position at Innovate AI...',
-    category: 'offer',
-    parsedCompany: 'Innovate AI',
-    parsedRole: 'Frontend Engineer',
-  },
-  {
-    id: 'email-3',
-    fromName: 'DataPulse HR',
-    fromEmail: 'hr@datapulse.io',
-    subject: 'Coding Assessment Instructions: AI Systems Engineer',
-    date: '3 days ago',
-    snippet: 'Thank you for applying. Please complete the following 90-minute coding challenge on Hackerrank within 48 hours...',
-    category: 'assessment',
-    parsedCompany: 'DataPulse AI',
-    parsedRole: 'AI Systems Engineer',
-    parsedDate: 'Complete within 48h',
-  },
-  {
-    id: 'email-4',
-    fromName: 'Global Soft',
-    fromEmail: 'no-reply@globalsoft.com',
-    subject: 'Application Status Update — Software Developer',
-    date: '4 days ago',
-    snippet: 'Thank you for your interest in Global Soft. After careful review, we have decided to move forward with other candidates whose experience more closely matches...',
-    category: 'rejection',
-    parsedCompany: 'Global Soft',
-    parsedRole: 'Software Developer',
-  },
-];
+const INITIAL_DEMO_EMAILS: SyncedEmail[] = [];
 
 export function getLocalSyncedEmails(): SyncedEmail[] {
   if (typeof window === 'undefined') return INITIAL_DEMO_EMAILS;

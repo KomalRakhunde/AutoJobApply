@@ -88,96 +88,122 @@ function InterviewPrepContent() {
   const rawData = parseJsonResponse<InterviewQuestionsResponse>(generate.data) || localQuestions;
 
   return (
-    <PageShell
-      title="Interview Preparation & AI Voice Screening"
-      subtitle="Prepare for your interview and launch your autonomous AI voice technical screening session."
-    >
-      {/* CANDIDATE INVITATION BANNER */}
-      {candidateId && (
-        <Card className="mb-8 border-2 border-indigo-500/30 bg-gradient-to-r from-indigo-950 via-slate-900 to-slate-900 text-white rounded-3xl p-6 shadow-2xl overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-            <Mic className="h-64 w-64 text-indigo-400" />
-          </div>
-          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="space-y-3 max-w-2xl">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className="bg-emerald-500 text-white font-bold text-xs px-3 py-1 gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> QUALIFIED FOR NEXT ROUND
-                </Badge>
-                <Badge className="bg-indigo-900/80 text-indigo-200 border-indigo-700 text-xs px-3 py-1 font-mono">
-                  ATS Score: 82%
-                </Badge>
-              </div>
-              <h2 className="text-2xl font-extrabold text-white tracking-tight">
-                AI Voice Technical Screening Interview Session
-              </h2>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                Congratulations, <strong className="text-white font-semibold">Komal Rakhunde</strong>! You have been officially selected for an autonomous AI voice screening interview for the <strong className="text-indigo-300">Senior Full Stack Engineer</strong> role at <strong className="text-white">ApplyAI Corp</strong>.
-              </p>
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1">
-                <span className="flex items-center gap-1.5 font-medium text-slate-300">
-                  <Briefcase className="h-4 w-4 text-indigo-400" /> Senior Full Stack Engineer
-                </span>
-                <span className="flex items-center gap-1.5 font-medium text-slate-300">
-                  <Building2 className="h-4 w-4 text-indigo-400" /> ApplyAI Corp
-                </span>
-                <span className="flex items-center gap-1.5 font-medium text-emerald-400 font-semibold">
-                  <Calendar className="h-4 w-4" /> Next Tuesday at 10:00 AM
-                </span>
-              </div>
+    <PageShell title="" subtitle="">
+      <div className="max-w-6xl mx-auto space-y-6 pb-16 animate-fade-in px-2 sm:px-4 font-mono text-xs">
+        {/* Top Header - Executive Suite Standard */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-b border-slate-200/80 dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white font-extrabold text-lg shadow-md shadow-indigo-500/20">
+              <Sparkles className="h-5 w-5" />
             </div>
-
-            <div className="shrink-0 w-full md:w-auto">
-              <Link href={`/interview/join/${candidateId}`}>
-                <Button
-                  size="lg"
-                  className="w-full md:w-auto bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold rounded-2xl py-6 px-8 shadow-xl shadow-indigo-600/40 text-base gap-3 transition-all hover:scale-105"
-                >
-                  <Mic className="h-5 w-5 animate-pulse" />
-                  <span>Start AI Voice Technical Interview</span>
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
-              </Link>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                AI Interview Studio <span className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-normal">v2.4.0</span>
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">VOICE SIMULATOR & MOCK INTERVIEWS</p>
             </div>
           </div>
-        </Card>
-      )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="h-5 w-5 text-primary" /> Generate Questions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Job title *</Label>
-              <Input
-                id="title"
-                value={jobTitle}
-                onChange={(e) => setJobTitle(e.target.value)}
-                placeholder="Senior Frontend Engineer"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="desc">Job description (optional)</Label>
-              <Textarea
-                id="desc"
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste the job description for more targeted questions..."
-                rows={6}
-              />
-            </div>
+          <div className="flex items-center gap-3 self-end sm:self-auto">
             <Button
-              className="w-full gap-2"
-              onClick={handleGenerate}
-              disabled={generate.isPending || !jobTitle.trim()}
+              variant="ghost"
+              size="sm"
+              className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl gap-1.5"
             >
-              {generate.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
+              <Mic className="h-3.5 w-3.5" />
+              <span>Voice AI</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* CANDIDATE INVITATION BANNER */}
+        {candidateId && (
+          <Card className="mb-6 border-2 border-indigo-500/40 border-l-8 border-l-indigo-500 bg-gradient-to-r from-indigo-950 via-slate-900 to-slate-900 text-white rounded-3xl p-6 shadow-2xl overflow-hidden relative font-mono">
+            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+              <Mic className="h-64 w-64 text-indigo-400" />
+            </div>
+            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="bg-emerald-500 text-white font-bold text-xs px-3 py-1 gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> QUALIFIED FOR NEXT ROUND
+                  </Badge>
+                  <Badge className="bg-indigo-900/80 text-indigo-200 border-indigo-700 text-xs px-3 py-1 font-mono">
+                    ATS Score: 82%
+                  </Badge>
+                </div>
+                <h2 className="text-2xl font-extrabold text-white tracking-tight">
+                  AI Voice Technical Screening Interview Session
+                </h2>
+                <p className="text-xs text-slate-300 leading-relaxed font-mono">
+                  Congratulations, <strong className="text-white font-semibold">Komal Rakhunde</strong>! You have been officially selected for an autonomous AI voice screening interview for the <strong className="text-indigo-300">Senior Full Stack Engineer</strong> role at <strong className="text-white">ApplyAI Corp</strong>.
+                </p>
+                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1 font-mono">
+                  <span className="flex items-center gap-1.5 font-medium text-slate-300">
+                    <Briefcase className="h-4 w-4 text-indigo-400" /> Senior Full Stack Engineer
+                  </span>
+                  <span className="flex items-center gap-1.5 font-medium text-slate-300">
+                    <Building2 className="h-4 w-4 text-indigo-400" /> ApplyAI Corp
+                  </span>
+                  <span className="flex items-center gap-1.5 font-medium text-emerald-400 font-semibold">
+                    <Calendar className="h-4 w-4" /> Next Tuesday at 10:00 AM
+                  </span>
+                </div>
+              </div>
+
+              <div className="shrink-0 w-full md:w-auto">
+                <Link href={`/interview/join/${candidateId}`}>
+                  <Button
+                    size="lg"
+                    className="w-full md:w-auto bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold rounded-2xl py-6 px-8 shadow-xl shadow-indigo-600/40 text-sm gap-3 transition-all hover:scale-105"
+                  >
+                    <Mic className="h-5 w-5 animate-pulse" />
+                    <span>Start AI Voice Technical Interview</span>
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        <div className="grid gap-6 lg:grid-cols-3 font-mono">
+          <Card className="lg:col-span-1 rounded-3xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-indigo-500 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent p-5 space-y-4 shadow-sm dark:shadow-2xl hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300">
+            <CardHeader className="p-0 pb-2">
+              <CardTitle className="flex items-center gap-2 text-base font-extrabold text-slate-900 dark:text-white">
+                <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Target Role Generator
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 space-y-4 font-mono text-xs">
+              <div className="space-y-1.5">
+                <Label htmlFor="title" className="text-[10px] font-bold text-slate-400 uppercase">Target Job Title *</Label>
+                <Input
+                  id="title"
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
+                  placeholder="e.g. Senior Frontend Engineer"
+                  className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#121522] font-mono text-xs text-slate-900 dark:text-white"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="desc" className="text-[10px] font-bold text-slate-400 uppercase">Job Description (optional)</Label>
+                <Textarea
+                  id="desc"
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  placeholder="Paste job description for custom technical questions..."
+                  rows={5}
+                  className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#121522] font-mono text-xs text-slate-900 dark:text-white"
+                />
+              </div>
+              <Button
+                className="w-full gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-5 shadow-sm"
+                onClick={handleGenerate}
+                disabled={generate.isPending || !jobTitle.trim()}
+              >
+                {generate.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
                 <Sparkles className="h-4 w-4" />
               )}
               {generate.isPending ? 'Generating…' : 'Generate Questions'}
@@ -211,7 +237,8 @@ function InterviewPrepContent() {
           {rawData && <QuestionSections data={rawData} />}
         </div>
       </div>
-    </PageShell>
+    </div>
+  </PageShell>
   );
 }
 

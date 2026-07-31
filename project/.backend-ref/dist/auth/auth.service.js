@@ -55,34 +55,52 @@ let AuthService = class AuthService {
         this.jwtService = jwtService;
     }
     async register(data) {
-        const existingUser = await this.prisma.user.findUnique({
-            where: {
-                email: data.email,
-            },
-        });
-        if (existingUser) {
-            throw new common_1.ConflictException('Email already registered');
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+        if (!passwordRegex.test(data.password)) {
+            throw new common_1.BadRequestException('Password must be at least 8 characters long and include uppercase, lowercase, a digit, and a special character.');
         }
-        const hashedPassword = await bcrypt.hash(data.password, 10);
-        const user = await this.prisma.user.create({
-            data: {
-                email: data.email,
-                password: hashedPassword,
-                firstName: data.firstName,
-                lastName: data.lastName,
-            },
-        });
-        return {
-            message: 'Registration successful',
-            user: {
-                id: user.id,
-                email: user.email,
-                firstName: user.firstName,
-                lastName: user.lastName,
-            },
-        };
+        try {
+            const existingUser = await this.prisma.user.findUnique({
+                where: {
+                    email: data.email,
+                },
+            });
+            if (existingUser) {
+                throw new common_1.BadRequestException('An account with this email address already exists. Please sign in or use a different email.');
+            }
+            const hashedPassword = await bcrypt.hash(data.password, 10);
+            const assignedRole = (data.role || 'student').toLowerCase();
+            const user = await this.prisma.user.create({
+                data: {
+                    email: data.email,
+                    password: hashedPassword,
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    role: assignedRole,
+                },
+            });
+            return {
+                message: 'Registration successful',
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    role: user.role,
+                },
+            };
+        }
+        catch (err) {
+            if (err?.code === 'P2002' || err?.message?.includes('P2002')) {
+                throw new common_1.BadRequestException('An account with this email address already exists. Please sign in or use a different email.');
+            }
+            throw err;
+        }
     }
-    async login(email, password) {
+    async login(email, password, selectedRole) {
+        if (!selectedRole) {
+            throw new common_1.BadRequestException('Selected role is required to authenticate.');
+        }
         const user = await this.prisma.user.findUnique({
             where: {
                 email,
@@ -95,9 +113,16 @@ let AuthService = class AuthService {
         if (!passwordValid) {
             throw new common_1.UnauthorizedException('Invalid email or password');
         }
+        const normalizedUserRole = (user.role || 'student').toLowerCase();
+        const normalizedSelectedRole = selectedRole.toLowerCase();
+        if (normalizedUserRole !== normalizedSelectedRole) {
+            throw new common_1.UnauthorizedException('Invalid credentials or incorrect role selected for this account.');
+        }
         const token = this.jwtService.sign({
+            sub: user.id,
             userId: user.id,
             email: user.email,
+            role: user.role,
         });
         return {
             message: 'Login successful',
@@ -105,6 +130,45 @@ let AuthService = class AuthService {
             user: {
                 id: user.id,
                 email: user.email,
+                role: user.role,
+            },
+        };
+    }
+    async validateOAuthUser(data) {
+        const normalizedEmail = data.email.trim().toLowerCase();
+        const requestedRole = (data.requestedRole || 'student').toLowerCase();
+        let user = await this.prisma.user.findUnique({
+            where: { email: normalizedEmail },
+        });
+        if (!user) {
+            const randomPassword = await bcrypt.hash(Math.random().toString(36), 10);
+            user = await this.prisma.user.create({
+                data: {
+                    email: normalizedEmail,
+                    password: randomPassword,
+                    firstName: data.firstName || 'OAuth',
+                    lastName: data.lastName || 'User',
+                    role: requestedRole,
+                },
+            });
+        }
+        const verifiedRole = (user.role || requestedRole).toLowerCase();
+        const token = this.jwtService.sign({
+            sub: user.id,
+            userId: user.id,
+            email: user.email,
+            role: verifiedRole,
+            provider: data.provider,
+        });
+        return {
+            message: 'OAuth authentication successful',
+            accessToken: token,
+            user: {
+                id: user.id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                role: verifiedRole,
             },
         };
     }

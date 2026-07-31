@@ -3,84 +3,84 @@ export declare class RecruitersController {
     private readonly recruitersService;
     constructor(recruitersService: RecruitersService);
     createJobPosting(dto: CreateJobDto): Promise<{
-        pipelineStages: {
-            id: string;
-            createdAt: Date;
-            jobPostingId: string;
-            name: string;
-            stageOrder: number;
-            stageType: string;
-        }[];
         _count: {
             candidates: number;
         };
+        pipelineStages: {
+            id: string;
+            createdAt: Date;
+            name: string;
+            jobPostingId: string;
+            stageOrder: number;
+            stageType: string;
+        }[];
     } & {
         id: string;
-        status: string;
         createdAt: Date;
         updatedAt: Date;
-        recruiterId: string;
         title: string;
-        department: string | null;
         location: string | null;
-        employmentType: string | null;
         description: string;
+        status: string;
+        recruiterId: string;
+        department: string | null;
+        employmentType: string | null;
         requirements: string;
         passingThreshold: number;
         autoInterviewEnabled: boolean;
         maxInterviewDurationSeconds: number;
     }>;
     getJobPostings(): Promise<({
-        pipelineStages: {
-            id: string;
-            createdAt: Date;
-            jobPostingId: string;
-            name: string;
-            stageOrder: number;
-            stageType: string;
-        }[];
         _count: {
             candidates: number;
         };
+        pipelineStages: {
+            id: string;
+            createdAt: Date;
+            name: string;
+            jobPostingId: string;
+            stageOrder: number;
+            stageType: string;
+        }[];
     } & {
         id: string;
-        status: string;
         createdAt: Date;
         updatedAt: Date;
-        recruiterId: string;
         title: string;
-        department: string | null;
         location: string | null;
-        employmentType: string | null;
         description: string;
+        status: string;
+        recruiterId: string;
+        department: string | null;
+        employmentType: string | null;
         requirements: string;
         passingThreshold: number;
         autoInterviewEnabled: boolean;
         maxInterviewDurationSeconds: number;
     })[]>;
     getJobPostingById(id: string): Promise<{
-        pipelineStages: {
-            id: string;
-            createdAt: Date;
-            jobPostingId: string;
-            name: string;
-            stageOrder: number;
-            stageType: string;
-        }[];
         _count: {
             candidates: number;
         };
+        pipelineStages: {
+            id: string;
+            createdAt: Date;
+            name: string;
+            jobPostingId: string;
+            stageOrder: number;
+            stageType: string;
+        }[];
     } & {
         id: string;
-        status: string;
         createdAt: Date;
         updatedAt: Date;
-        recruiterId: string;
         title: string;
-        department: string | null;
         location: string | null;
-        employmentType: string | null;
         description: string;
+        status: string;
+        recruiterId: string;
+        department: string | null;
+        employmentType: string | null;
         requirements: string;
         passingThreshold: number;
         autoInterviewEnabled: boolean;
@@ -94,9 +94,9 @@ export declare class RecruitersController {
     getCandidatesByJob(id: string, search?: string, minScore?: string, stage?: string): Promise<({
         resumeUploads: {
             id: string;
+            fileUrl: string | null;
             candidateId: string;
             fileName: string;
-            fileUrl: string | null;
             fileSize: number | null;
             rawContent: string | null;
             uploadedAt: Date;
@@ -123,33 +123,33 @@ export declare class RecruitersController {
         }[];
         interviewSessions: {
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            status: string;
+            candidateId: string;
+            triggeredBy: string;
+            jobPostingId: string;
             roomName: string;
             joinToken: string;
-            status: string;
             questionContext: import("@prisma/client/runtime/client").JsonValue | null;
             transcript: string | null;
             recordingUrl: string | null;
             durationSeconds: number | null;
             maxDurationSeconds: number;
-            triggeredBy: string;
             startedAt: Date | null;
             endedAt: Date | null;
-            createdAt: Date;
-            updatedAt: Date;
-            candidateId: string;
-            jobPostingId: string;
         }[];
     } & {
+        experience: import("@prisma/client/runtime/client").JsonValue | null;
         id: string;
-        status: string;
+        email: string;
         createdAt: Date;
         updatedAt: Date;
-        jobPostingId: string;
-        name: string;
-        email: string;
-        phone: string | null;
         skills: import("@prisma/client/runtime/client").JsonValue | null;
-        experience: import("@prisma/client/runtime/client").JsonValue | null;
+        name: string;
+        status: string;
+        phone: string | null;
+        jobPostingId: string;
         rawText: string | null;
         currentStage: string;
         consentGiven: boolean;

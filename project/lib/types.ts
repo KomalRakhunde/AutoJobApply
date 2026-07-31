@@ -10,13 +10,13 @@ export interface User {
 
 export interface RegisterResponse {
   message: string;
-  user: Pick<User, 'id' | 'email' | 'firstName' | 'lastName'>;
+  user: Pick<User, 'id' | 'email' | 'firstName' | 'lastName' | 'role'>;
 }
 
 export interface LoginResponse {
   message: string;
   accessToken: string;
-  user: Pick<User, 'id' | 'email'>;
+  user: Pick<User, 'id' | 'email' | 'role'>;
 }
 
 export interface Profile {

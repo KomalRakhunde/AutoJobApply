@@ -13,21 +13,21 @@ export declare class InterviewService {
     }): Promise<{
         session: {
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            status: string;
+            candidateId: string;
+            triggeredBy: string;
+            jobPostingId: string;
             roomName: string;
             joinToken: string;
-            status: string;
             questionContext: import("@prisma/client/runtime/client").JsonValue | null;
             transcript: string | null;
             recordingUrl: string | null;
             durationSeconds: number | null;
             maxDurationSeconds: number;
-            triggeredBy: string;
             startedAt: Date | null;
             endedAt: Date | null;
-            createdAt: Date;
-            updatedAt: Date;
-            candidateId: string;
-            jobPostingId: string;
         };
         joinUrl: string;
         outreachResult: any;
@@ -66,21 +66,21 @@ export declare class InterviewService {
     }>;
     updateSessionStatus(id: string, status: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        candidateId: string;
+        triggeredBy: string;
+        jobPostingId: string;
         roomName: string;
         joinToken: string;
-        status: string;
         questionContext: import("@prisma/client/runtime/client").JsonValue | null;
         transcript: string | null;
         recordingUrl: string | null;
         durationSeconds: number | null;
         maxDurationSeconds: number;
-        triggeredBy: string;
         startedAt: Date | null;
         endedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
-        candidateId: string;
-        jobPostingId: string;
     } | {
         id: string;
         status: string;
@@ -88,21 +88,21 @@ export declare class InterviewService {
     }>;
     completeInterviewSession(id: string, transcript: string, durationSeconds: number, recordingUrl?: string): Promise<{
         id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        status: string;
+        candidateId: string;
+        triggeredBy: string;
+        jobPostingId: string;
         roomName: string;
         joinToken: string;
-        status: string;
         questionContext: import("@prisma/client/runtime/client").JsonValue | null;
         transcript: string | null;
         recordingUrl: string | null;
         durationSeconds: number | null;
         maxDurationSeconds: number;
-        triggeredBy: string;
         startedAt: Date | null;
         endedAt: Date | null;
-        createdAt: Date;
-        updatedAt: Date;
-        candidateId: string;
-        jobPostingId: string;
     } | {
         id: string;
         status: string;

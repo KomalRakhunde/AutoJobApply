@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import type { SourcedCandidate } from '@/lib/types/sourcing';
 
-// Candidate Sourcing Pipeline with AI Vector Matching Algorithm
-const mockTalentDatabase: Omit<SourcedCandidate, 'id' | 'requisitionId' | 'matchScore' | 'status'>[] = [
+const SourcePayloadSchema = z.object({
+  requisitionId: z.string().optional(),
+  requiredSkills: z.array(z.string()).optional(),
+});
+
+const talentDatabase: Omit<SourcedCandidate, 'id' | 'requisitionId' | 'matchScore' | 'status'>[] = [
   {
     name: 'Alex Rivera',
     email: 'alex.rivera@example.com',
@@ -55,35 +60,41 @@ const mockTalentDatabase: Omit<SourcedCandidate, 'id' | 'requisitionId' | 'match
   },
 ];
 
-// Helper: Calculate AI Semantic Vector Embedding Match Score (0 - 100%)
 function calculateAiMatchScore(candidateSkills: string[], requiredSkills: string[]): number {
-  if (requiredSkills.length === 0) return 85;
+  if (!requiredSkills || requiredSkills.length === 0) return 85;
   const matches = candidateSkills.filter((s) =>
     requiredSkills.some((req) => req.toLowerCase() === s.toLowerCase())
   ).length;
   const baseRatio = matches / requiredSkills.length;
-  // AI score logic with weighted boost for vector similarity
-  const score = Math.round(70 + baseRatio * 28 + (Math.random() * 2));
+  const score = Math.round(70 + baseRatio * 28 + Math.random() * 2);
   return Math.min(score, 98);
 }
 
 export async function POST(req: Request) {
   try {
-    const { requisitionId, requiredSkills = [] } = await req.json();
+    const rawBody = await req.json().catch(() => ({}));
+    const parseResult = SourcePayloadSchema.safeParse(rawBody);
 
-    // Sourcing Candidates from Talent API Pipeline & Ranking via AI Vector Match
-    const sourcedCandidates: SourcedCandidate[] = mockTalentDatabase.map((candidate, idx) => {
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid payload structure', details: parseResult.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { requisitionId, requiredSkills = [] } = parseResult.data;
+
+    const sourcedCandidates: SourcedCandidate[] = talentDatabase.map((candidate, idx) => {
       const matchScore = calculateAiMatchScore(candidate.skills, requiredSkills);
       return {
         ...candidate,
-        id: `cand-${requisitionId}-${idx + 1}`,
+        id: `cand-${requisitionId || 'req'}-${idx + 1}`,
         requisitionId: requisitionId || 'req-1',
         matchScore,
         status: 'SOURCED',
       };
     });
 
-    // Sort candidates by AI Match Score descending
     sourcedCandidates.sort((a, b) => b.matchScore - a.matchScore);
 
     return NextResponse.json({
@@ -92,6 +103,9 @@ export async function POST(req: Request) {
       candidates: sourcedCandidates,
     });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to source candidates' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Internal server error while sourcing candidates' },
+      { status: 500 }
+    );
   }
 }

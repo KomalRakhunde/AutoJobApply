@@ -132,106 +132,132 @@ export default function ResumePage() {
   const loading = uploadResume.isPending || atsScore.isPending || resumeAnalysis.isPending;
 
   return (
-    <PageShell
-      title="Resume & ATS Score"
-      subtitle="Upload your resume to get an ATS score and detailed analysis."
-    >
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Upload panel */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Upload className="h-5 w-5 text-primary" /> Upload Resume
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={onDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
-                dragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,application/pdf"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleFile(f);
-                }}
-              />
-              <FileText className="h-10 w-10 text-muted-foreground" />
-              <p className="mt-3 text-sm font-medium">
-                {file ? file.name : 'Drop your PDF here or click to browse'}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">PDF files only</p>
+    <PageShell title="" subtitle="">
+      <div className="max-w-6xl mx-auto space-y-6 pb-16 animate-fade-in px-2 sm:px-4 font-mono text-xs">
+        {/* Top Header - Executive Suite Standard */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-b border-slate-200/80 dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white font-extrabold text-lg shadow-md shadow-indigo-500/20">
+              <FileText className="h-5 w-5" />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="jd">Job description (optional)</Label>
-              <Textarea
-                id="jd"
-                placeholder="Paste a job description for keyword matching..."
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                rows={5}
-              />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                AI Resume Studio <span className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-normal">v2.4.0</span>
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">PDF PARSER & ATS OPTIMIZER</p>
             </div>
+          </div>
 
+          <div className="flex items-center gap-3 self-end sm:self-auto">
             <Button
-              className="w-full gap-2"
-              onClick={handleAnalyze}
-              disabled={!file || loading}
+              variant="ghost"
+              size="sm"
+              className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl gap-1.5"
             >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Target className="h-4 w-4" />
-              )}
-              {loading ? 'Analyzing…' : 'Analyze Resume'}
+              <Target className="h-3.5 w-3.5" />
+              <span>ATS Engine</span>
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Results panel */}
-        <div className="space-y-6 lg:col-span-2">
-          {loading && !scoreData && (
-            <Card>
-              <CardContent className="flex items-center justify-center py-20">
-                <div className="text-center">
-                  <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
-                  <p className="mt-4 text-sm text-muted-foreground">
-                    Uploading and analyzing your resume…
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Upload panel */}
+          <Card className="lg:col-span-1 rounded-3xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-indigo-500 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent p-5 space-y-4 shadow-sm dark:shadow-2xl hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300">
+            <CardHeader className="p-0 pb-2">
+              <CardTitle className="flex items-center gap-2 text-base font-extrabold text-slate-900 dark:text-white">
+                <Upload className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Upload Resume PDF
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 space-y-4 font-mono text-xs">
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={onDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition-all ${
+                  dragOver ? 'border-indigo-500 bg-indigo-500/10' : 'border-slate-300 dark:border-slate-700 hover:border-indigo-500/50'
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFile(f);
+                  }}
+                />
+                <FileText className="h-10 w-10 text-indigo-600 dark:text-indigo-400" />
+                <p className="mt-3 text-xs font-bold text-slate-900 dark:text-white">
+                  {file ? file.name : 'Drop your PDF here or click to browse'}
+                </p>
+                <p className="mt-1 text-[10px] text-slate-400">PDF files only (Max 10MB)</p>
+              </div>
 
-          {!loading && !scoreData && (
-            <Card>
-              <CardContent className="flex items-center justify-center py-20">
-                <div className="text-center">
-                  <Target className="mx-auto h-12 w-12 text-muted-foreground/40" />
-                  <p className="mt-4 text-sm text-muted-foreground">
-                    Upload a resume and click Analyze to see your ATS score and analysis.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+              <div className="space-y-1.5">
+                <Label htmlFor="jd" className="text-[10px] font-bold text-slate-400 uppercase">Target Job Description (optional)</Label>
+                <Textarea
+                  id="jd"
+                  placeholder="Paste target job description to run keyword match score..."
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  rows={4}
+                  className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#121522] font-mono text-xs text-slate-900 dark:text-white"
+                />
+              </div>
 
-          {scoreData && (
-            <AtsScoreCard data={scoreData} />
-          )}
+              <Button
+                className="w-full gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-5 shadow-sm"
+                onClick={handleAnalyze}
+                disabled={!file || loading}
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Target className="h-4 w-4" />
+                )}
+                {loading ? 'Analyzing...' : 'Analyze Resume'}
+              </Button>
+            </CardContent>
+          </Card>
 
-          {analysisData && (
-            <AnalysisCard data={analysisData} />
-          )}
+          {/* Results panel */}
+          <div className="space-y-6 lg:col-span-2">
+            {loading && !scoreData && (
+              <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0c0e17] p-12 text-center shadow-sm">
+                <CardContent className="flex items-center justify-center p-0">
+                  <div className="text-center font-mono space-y-3">
+                    <Loader2 className="mx-auto h-10 w-10 animate-spin text-indigo-600 dark:text-indigo-400" />
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">
+                      Extracting PDF tokens and scoring against ATS matrix...
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {!loading && !scoreData && (
+              <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0c0e17] p-12 text-center shadow-sm">
+                <CardContent className="flex items-center justify-center p-0 font-mono space-y-3">
+                  <div className="text-center space-y-2">
+                    <Target className="mx-auto h-12 w-12 text-indigo-600/40" />
+                    <p className="text-xs font-bold text-slate-900 dark:text-white">
+                      Upload a PDF resume and click Analyze to view your ATS score card.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {scoreData && (
+              <AtsScoreCard data={scoreData} />
+            )}
+
+            {analysisData && (
+              <AnalysisCard data={analysisData} />
+            )}
+          </div>
         </div>
       </div>
     </PageShell>

@@ -39,6 +39,20 @@ enum Channel {
   WHATSAPP
 }
 
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String
+  firstName  String?
+  lastName   String?
+  role       Role     @default(STUDENT)
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("users")
+}
+
 model JobRequisition {
   id              String             @id @default(uuid())
   recruiterId     String

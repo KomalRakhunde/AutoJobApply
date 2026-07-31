@@ -9,6 +9,7 @@ export declare class AuthService {
         password: string;
         firstName?: string;
         lastName?: string;
+        role?: string;
     }): Promise<{
         message: string;
         user: {
@@ -16,14 +17,33 @@ export declare class AuthService {
             email: string;
             firstName: string;
             lastName: string;
+            role: string;
         };
     }>;
-    login(email: string, password: string): Promise<{
+    login(email: string, password: string, selectedRole: string): Promise<{
         message: string;
         accessToken: string;
         user: {
             id: string;
             email: string;
+            role: string;
+        };
+    }>;
+    validateOAuthUser(data: {
+        email: string;
+        firstName?: string;
+        lastName?: string;
+        requestedRole?: string;
+        provider: 'google' | 'linkedin';
+    }): Promise<{
+        message: string;
+        accessToken: string;
+        user: {
+            id: string;
+            email: string;
+            firstName: string;
+            lastName: string;
+            role: string;
         };
     }>;
 }

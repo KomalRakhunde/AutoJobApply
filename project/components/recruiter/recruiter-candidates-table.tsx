@@ -25,8 +25,12 @@ import {
   Copy,
   Check,
   Loader2,
+  Download,
+  FileSpreadsheet,
+  Filter,
 } from 'lucide-react';
 import { RecruiterCandidate, deleteCandidateData, createAutomatedSelectionEmail } from '@/lib/recruiter-api';
+import { OfferLetterDialog } from '@/components/recruiter/offer-letter-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 interface RecruiterCandidatesTableProps {
@@ -43,8 +47,10 @@ export function RecruiterCandidatesTable({
   const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'score' | 'name' | 'date'>('score');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'qualified' | 'review'>('all');
   const [selectedCandidate, setSelectedCandidate] = useState<RecruiterCandidate | null>(null);
   const [viewEmailCandidate, setViewEmailCandidate] = useState<RecruiterCandidate | null>(null);
+  const [offerCandidate, setOfferCandidate] = useState<RecruiterCandidate | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -57,8 +63,48 @@ export function RecruiterCandidatesTable({
     message?: string;
   } | null>(null);
 
+  const handleExportCSV = () => {
+    if (filtered.length === 0) {
+      toast({ title: 'No Candidates to Export', description: 'Try adjusting your search filters.', variant: 'destructive' });
+      return;
+    }
+
+    const headers = ['Candidate Name', 'Email', 'Phone', 'ATS Match Score (%)', 'Qualification Status', 'Top Skills'];
+    const rows = filtered.map((c) => {
+      const score = c.scores[0]?.overallScore || 0;
+      const isQual = score >= passingThreshold;
+      return [
+        `"${c.name.replace(/"/g, '""')}"`,
+        `"${c.email.replace(/"/g, '""')}"`,
+        `"${(c.phone || '').replace(/"/g, '""')}"`,
+        score,
+        `"${isQual ? 'QUALIFIED' : 'REVIEW_REQUIRED'}"`,
+        `"${(c.skills || []).join('; ').replace(/"/g, '""')}"`,
+      ];
+    });
+
+    const csvData = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `ApplyAI_Candidate_Intake_Report_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: '📊 Candidate Report Exported!',
+      description: `Successfully generated CSV report for ${filtered.length} candidate(s).`,
+    });
+  };
+
   const filtered = candidates
     .filter((c) => {
+      const score = c.scores[0]?.overallScore || 0;
+      if (filterStatus === 'qualified' && score < passingThreshold) return false;
+      if (filterStatus === 'review' && score >= passingThreshold) return false;
+
       const query = search.toLowerCase();
       return (
         c.name.toLowerCase().includes(query) ||
@@ -176,37 +222,84 @@ export function RecruiterCandidatesTable({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Controls Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Search candidates by name, email, skills..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 rounded-xl text-xs"
-          />
+    <div className="space-y-4 font-mono">
+      {/* Controls Bar with Left Accent & Hover Glow */}
+      <div className="flex flex-col lg:flex-row items-center justify-between gap-3 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-indigo-500 p-4 rounded-3xl shadow-sm dark:shadow-2xl hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Search candidate name, email, skills..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 rounded-xl text-xs font-mono bg-slate-50 dark:bg-[#121522] border-slate-200 dark:border-slate-800"
+            />
+          </div>
+
+          {/* Status Filter Pills */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#121522] p-1 rounded-xl w-full sm:w-auto">
+            <button
+              onClick={() => setFilterStatus('all')}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                filterStatus === 'all'
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              All ({candidates.length})
+            </button>
+            <button
+              onClick={() => setFilterStatus('qualified')}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                filterStatus === 'qualified'
+                  ? 'bg-emerald-500 text-white shadow-xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              Qualified ({candidates.filter(c => (c.scores[0]?.overallScore || 0) >= passingThreshold).length})
+            </button>
+            <button
+              onClick={() => setFilterStatus('review')}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                filterStatus === 'review'
+                  ? 'bg-amber-500 text-white shadow-xs font-bold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              Review ({candidates.filter(c => (c.scores[0]?.overallScore || 0) < passingThreshold).length})
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <span className="text-xs text-slate-500 font-medium">Sort by:</span>
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+        <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleExportCSV}
+            className="h-8 text-xs font-bold rounded-xl gap-1.5 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <Download className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+            <span>Export CSV</span>
+          </Button>
+
+          <span className="text-xs text-slate-400 hidden sm:inline">|</span>
+
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#121522] p-1 rounded-xl">
             <button
               onClick={() => setSortBy('score')}
               className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
                 sortBy === 'score'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Match Score
+              Score
             </button>
             <button
               onClick={() => setSortBy('name')}
               className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
                 sortBy === 'name'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
@@ -216,7 +309,7 @@ export function RecruiterCandidatesTable({
               onClick={() => setSortBy('date')}
               className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
                 sortBy === 'date'
-                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
@@ -226,8 +319,8 @@ export function RecruiterCandidatesTable({
         </div>
       </div>
 
-      {/* Table */}
-      <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+      {/* Table Card with Left Accent & Hover Glow */}
+      <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-indigo-500 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent overflow-hidden shadow-sm dark:shadow-2xl hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-600 dark:text-slate-400">
             <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
@@ -305,7 +398,7 @@ export function RecruiterCandidatesTable({
                       </td>
 
                       {/* Summary */}
-                      <td className="py-4 px-4 max-w-xs">
+                      <td className="py-4 px-4 max-w-md">
                         <p className="text-[11.5px] text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
                           {topScoreObj?.summary || 'AI evaluation complete.'}
                         </p>
@@ -360,16 +453,30 @@ export function RecruiterCandidatesTable({
 
                       {/* Actions */}
                       <td className="py-4 px-4 text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          disabled={deletingId === candidate.id}
-                          onClick={() => handleDelete(candidate.id)}
-                          className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl"
-                          title="Delete candidate data (GDPR request)"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {isQualified && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setOfferCandidate(candidate)}
+                              className="h-8 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50/80 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 rounded-xl gap-1 hover:bg-emerald-100"
+                              title="Generate formal employment offer letter"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                              <span>Offer Letter</span>
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={deletingId === candidate.id}
+                            onClick={() => handleDelete(candidate.id)}
+                            className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl"
+                            title="Delete candidate data (GDPR request)"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -379,6 +486,20 @@ export function RecruiterCandidatesTable({
           </table>
         </div>
       </Card>
+
+      {/* OFFER LETTER MODAL */}
+      {offerCandidate && (
+        <OfferLetterDialog
+          candidate={offerCandidate}
+          open={!!offerCandidate}
+          onOpenChange={(open) => {
+            if (!open) setOfferCandidate(null);
+          }}
+          onOfferSent={() => {
+            onRefresh?.();
+          }}
+        />
+      )}
 
       {/* VIEW AUTOMATED SELECTION EMAIL MODAL */}
       {viewEmailCandidate && (

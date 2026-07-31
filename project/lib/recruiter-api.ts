@@ -64,14 +64,13 @@ let dynamicCandidatesStore: RecruiterCandidate[] = [];
 export async function fetchRecruiterJobs(): Promise<RecruiterJob[]> {
   try {
     const jobs = await apiRequest<RecruiterJob[]>('/recruiters/jobs');
-    if (jobs && Array.isArray(jobs) && jobs.length > 0) {
-      dynamicJobsStore = jobs;
+    if (jobs && Array.isArray(jobs)) {
       return jobs;
     }
   } catch (error) {
-    console.warn('Backend endpoint unavailable, returning dynamic store jobs', error);
+    console.error('Error fetching recruiter jobs:', error);
   }
-  return dynamicJobsStore;
+  return [];
 }
 
 export async function createRecruiterJob(data: {
@@ -84,38 +83,11 @@ export async function createRecruiterJob(data: {
   autoInterviewEnabled?: boolean;
   maxInterviewDurationSeconds?: number;
 }): Promise<RecruiterJob> {
-  try {
-    const created = await apiRequest<RecruiterJob>('/recruiters/jobs', {
-      method: 'POST',
-      body: data,
-    });
-    if (created) {
-      dynamicJobsStore.unshift(created);
-      return created;
-    }
-  } catch (error) {
-    console.warn('Backend unavailable, creating dynamic job object', error);
-  }
-
-  const newJob: RecruiterJob = {
-    id: `job-${Date.now()}`,
-    recruiterId: 'rec-1',
-    title: data.title,
-    department: data.department || 'Engineering',
-    location: data.location || 'Remote',
-    employmentType: 'Full-Time',
-    description: data.description,
-    requirements: data.requirements,
-    passingThreshold: data.passingThreshold || 75,
-    autoInterviewEnabled: data.autoInterviewEnabled ?? true,
-    maxInterviewDurationSeconds: data.maxInterviewDurationSeconds ?? 600,
-    status: 'OPEN',
-    createdAt: new Date().toISOString(),
-    _count: { candidates: 0 },
-  };
-
-  dynamicJobsStore.unshift(newJob);
-  return newJob;
+  const created = await apiRequest<RecruiterJob>('/recruiters/jobs', {
+    method: 'POST',
+    body: data,
+  });
+  return created;
 }
 
 export async function fetchJobCandidates(
@@ -132,24 +104,13 @@ export async function fetchJobCandidates(
 
     const query = params.toString() ? `?${params.toString()}` : '';
     const candList = await apiRequest<RecruiterCandidate[]>(`/recruiters/jobs/${jobId}/candidates${query}`);
-    if (candList && Array.isArray(candList) && candList.length > 0) {
+    if (candList && Array.isArray(candList)) {
       return candList;
     }
   } catch (error) {
-    console.warn('Backend API unavailable, using dynamic candidates list', error);
+    console.error('Error fetching job candidates:', error);
   }
-
-  let list = dynamicCandidatesStore.filter((c) => c.jobPostingId === jobId || jobId === 'all');
-  if (search) {
-    list = list.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase()));
-  }
-  if (minScore !== undefined) {
-    list = list.filter((c) => (c.scores[0]?.overallScore || 0) >= minScore);
-  }
-  if (stage) {
-    list = list.filter((c) => c.currentStage === stage);
-  }
-  return list;
+  return [];
 }
 
 export async function uploadBulkResumes(

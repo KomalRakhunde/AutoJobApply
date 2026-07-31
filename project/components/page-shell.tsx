@@ -139,9 +139,9 @@ export function PageShell({
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      <div className="flex min-h-screen bg-slate-50 dark:bg-[#0a0d18] text-slate-900 dark:text-slate-100">
         {/* Sticky Desktop Collapsible Left Sidebar */}
-        <div className="sticky top-0 h-screen z-30 shrink-0 hidden lg:block">
+        <div className="sticky top-0 h-screen z-30 shrink-0 hidden lg:block border-r border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#0a0d18]">
           <AppSidebar
             isCollapsed={isSidebarCollapsed}
             onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -165,7 +165,7 @@ export function PageShell({
         {/* Main Application Column */}
         <div className="flex flex-1 flex-col min-w-0">
           {/* Sticky Top Clean Header Bar */}
-          <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 sm:px-6 lg:px-8 pt-safe shadow-sm">
+          <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur-md dark:border-slate-800/80 dark:bg-[#0a0d18]/95 sm:px-6 lg:px-8 xl:px-10 pt-safe shadow-sm">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               {/* Toggle Sidebar Button */}
               <Button
@@ -258,6 +258,10 @@ export function PageShell({
 
             {/* Header Right Actions & Profile */}
             <div className="flex items-center gap-3 shrink-0">
+              <span className="hidden md:inline-flex items-center text-xs font-bold text-slate-700 dark:text-slate-200">
+                Welcome, <span className="text-indigo-600 dark:text-indigo-400 ml-1 font-extrabold">{username}</span> 👋
+              </span>
+
               {/* Role Pill Badge */}
               <span className={`hidden sm:inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${roleBadge.color}`}>
                 {roleBadge.label} Portal
@@ -340,7 +344,7 @@ export function PageShell({
           </header>
 
           {/* Main Body Content Container */}
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 pb-safe max-w-7xl w-full mx-auto space-y-6">
+          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10 pb-safe max-w-[1440px] w-full mx-auto space-y-6">
             <div className="animate-fade-in-up flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl text-slate-900 dark:text-white">
