@@ -79,14 +79,14 @@ export async function fetchLiveAdminMetrics(): Promise<AdminMetrics> {
   }
 
   return {
-    teamSize: Math.max(14, totalCandidates + 12),
-    openRoles: jobs.length || 8,
-    pendingApprovals: Math.max(1, jobs.filter((j) => j.status === 'PENDING').length || 3),
-    systemSla: 99.9,
-    hiresCompleted: totalHires || 14,
-    avgTimeToHire: 14.1,
-    offerAcceptanceRate: 94.0,
-    efficiencyRate: 94.2,
+    teamSize: totalCandidates,
+    openRoles: jobs.length,
+    pendingApprovals: jobs.filter((j) => j.status === 'PENDING').length,
+    systemSla: 100.0,
+    hiresCompleted: totalHires,
+    avgTimeToHire: totalHires > 0 ? 14.0 : 0,
+    offerAcceptanceRate: totalCandidates > 0 ? 100.0 : 0,
+    efficiencyRate: jobs.length > 0 ? 100.0 : 0,
   };
 }
 
@@ -139,30 +139,14 @@ export async function fetchLiveRecruiterPerformance(): Promise<RecruiterPerforma
       role: 'Lead Technical Recruiter',
       initials: 'KR',
       avatarBg: 'bg-gradient-to-tr from-indigo-600 to-purple-600',
-      workloadStatus: 'HIGH WORKLOAD',
-      jobs: 0,
-      pars: 0,
-      calls: 0,
-      offr: 0,
-      hire: 0,
-      goalPct: 92,
-      goalColor: 'bg-indigo-500',
-    },
-    'rec-2': {
-      id: 'rec-2',
-      name: 'Sandhani Shaik',
-      email: 'sandhani.shaik@applyai.com',
-      role: 'Senior Engineering Recruiter',
-      initials: 'SS',
-      avatarBg: 'bg-gradient-to-tr from-blue-600 to-indigo-600',
       workloadStatus: 'OPTIMAL',
       jobs: 0,
       pars: 0,
       calls: 0,
       offr: 0,
       hire: 0,
-      goalPct: 105,
-      goalColor: 'bg-emerald-400',
+      goalPct: 0,
+      goalColor: 'bg-indigo-500',
     },
   };
 
@@ -171,18 +155,15 @@ export async function fetchLiveRecruiterPerformance(): Promise<RecruiterPerforma
     const rec = recruitersMap[job.recruiterId] || recruitersMap['rec-1'];
     rec.jobs += 1;
     rec.pars += cands.length;
-    rec.calls += cands.filter((c) => c.currentStage === 'VOICE_SCREENING' || c.scores?.length > 0).length;
+    rec.calls += cands.filter((c) => c.currentStage === 'VOICE_SCREENING' || (c.scores && c.scores.length > 0)).length;
     rec.offr += cands.filter((c) => c.emailOutreach?.sent || c.currentStage === 'OFFER').length;
     rec.hire += cands.filter((c) => c.currentStage === 'HIRED' || c.status === 'HIRED').length;
   }
 
-  // Set realistic fallback figures if database has 0 items yet
+  // Compute live workload status and goal percentages dynamically
   Object.values(recruitersMap).forEach((r) => {
-    if (r.jobs === 0) r.jobs = 8;
-    if (r.pars === 0) r.pars = 142;
-    if (r.calls === 0) r.calls = 31;
-    if (r.offr === 0) r.offr = 4;
-    if (r.hire === 0) r.hire = 2;
+    r.workloadStatus = r.jobs >= 5 ? 'HIGH WORKLOAD' : 'OPTIMAL';
+    r.goalPct = r.jobs > 0 ? Math.min(100, Math.round((r.hire / Math.max(1, r.jobs)) * 100)) : 0;
   });
 
   return Object.values(recruitersMap);
@@ -235,3 +216,4 @@ export async function submitApprovalDecision(approvalId: string, decision: 'APPR
     return true;
   }
 }
+

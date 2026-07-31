@@ -51,7 +51,7 @@ export const ALL_PINNABLE_FEATURES: PinnedFeatureInfo[] = [
   {
     id: 'interview-prep',
     href: '/interview-prep',
-    label: 'Interview Prep',
+    label: 'Interview Studio',
     description: 'AI mock questions, behavioral prep, and technical practice',
     iconName: 'MessageSquare',
   },

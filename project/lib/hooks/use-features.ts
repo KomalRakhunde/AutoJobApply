@@ -136,63 +136,7 @@ const LOCAL_APPS_KEY = 'applyai_local_applications';
 function getLocalApplications(): Application[] {
   if (typeof window === 'undefined') return [];
   const raw = localStorage.getItem(LOCAL_APPS_KEY);
-  if (!raw) {
-    const demoApps: Application[] = [
-      {
-        id: 'app-1',
-        userId: 'user-1',
-        jobId: 'job-1',
-        status: 'applied',
-        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date().toISOString(),
-        job: {
-          id: 'job-1',
-          title: 'Full Stack Engineer',
-          company: 'TechCorp Solutions',
-          location: 'Remote',
-          salary: '$110,000 - $130,000',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      },
-      {
-        id: 'app-2',
-        userId: 'user-1',
-        jobId: 'job-2',
-        status: 'interview',
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date().toISOString(),
-        job: {
-          id: 'job-2',
-          title: 'Frontend React Developer',
-          company: 'InnovateAI',
-          location: 'San Francisco, CA',
-          salary: '$120,000 - $140,000',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      },
-      {
-        id: 'app-3',
-        userId: 'user-1',
-        jobId: 'job-3',
-        status: 'assessment',
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date().toISOString(),
-        job: {
-          id: 'job-3',
-          title: 'Software Engineer - AI Systems',
-          company: 'DataPulse AI',
-          location: 'Hybrid',
-          salary: '$130,000 - $150,000',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      },
-    ];
-    localStorage.setItem(LOCAL_APPS_KEY, JSON.stringify(demoApps));
-    return demoApps;
-  }
+  if (!raw) return [];
   try {
     return JSON.parse(raw);
   } catch {

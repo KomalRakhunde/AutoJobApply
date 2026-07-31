@@ -64,7 +64,7 @@ import { useSearchParams } from 'next/navigation';
 
 export default function RecruiterDashboardPage() {
   const searchParams = useSearchParams();
-  const tabFromUrl = searchParams.get('tab') || 'overview';
+  const tabFromUrl = searchParams?.get('tab') || 'overview';
 
   const user = useAppSelector((s) => s.auth.user);
   const username = user?.email ? user.email.split('@')[0] : 'Recruiter';

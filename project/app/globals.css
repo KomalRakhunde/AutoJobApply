@@ -101,11 +101,13 @@
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
   /* Prevent font scaling issues on iOS forms */
   input, select, textarea, button {
@@ -142,6 +144,16 @@
   }
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .min-h-dvh {
+    min-height: 100dvh;
+  }
+  .h-dvh {
+    height: 100dvh;
+  }
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;

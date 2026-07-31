@@ -52,7 +52,7 @@ export function OfferLetterDialog({
   const [company, setCompany] = useState(companyName || 'Lexon IT Solutions Pvt Ltd');
   const [companyWebsite, setCompanyWebsite] = useState('https://www.lexonit.com');
   const [location, setLocation] = useState('Remote');
-  const [supervisor, setSupervisor] = useState('Sandhani Shaik');
+  const [supervisor, setSupervisor] = useState('Komal Rakhunde');
   const [eligibilityTrack, setEligibilityTrack] = useState('AI Full Stack Development');
   const [joiningDate, setJoiningDate] = useState('June 22, 2026');
   const [stipendDetails, setStipendDetails] = useState('3 Months Internship; Post 3 months based on performance stipend will be provided');

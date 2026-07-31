@@ -44,6 +44,7 @@ import {
   ShieldAlert,
   GraduationCap,
   ChevronRight,
+  TrendingUp,
 } from 'lucide-react';
 
 const searchableItems = [
@@ -52,8 +53,8 @@ const searchableItems = [
   { label: 'Application Tracker', href: '/applications', type: 'Workflow', icon: KanbanSquare },
   { label: 'Auto-Apply Engine', href: '/auto-apply', type: 'Automation', icon: Zap },
   { label: 'Cover Letter Generator', href: '/cover-letter', type: 'AI Tool', icon: FileText },
-  { label: 'Interview Prep', href: '/interview-prep', type: 'AI Tool', icon: MessageSquare },
-  { label: 'AI Career Coach', href: '/career-coach', type: 'AI Tool', icon: Compass },
+  { label: 'Interview Studio', href: '/interview-prep', type: 'AI Tool', icon: MessageSquare },
+  { label: 'Career Roadmap', href: '/career-roadmap', type: 'Roadmap', icon: TrendingUp },
   { label: 'Email Inbox AI', href: '/email-sync', type: 'Sync', icon: Mail },
 ];
 
@@ -139,9 +140,9 @@ export function PageShell({
 
   return (
     <AuthGuard>
-      <div className="flex min-h-screen bg-slate-50 dark:bg-[#0a0d18] text-slate-900 dark:text-slate-100">
+      <div className="flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-[#0a0d18] text-slate-900 dark:text-slate-100">
         {/* Sticky Desktop Collapsible Left Sidebar */}
-        <div className="sticky top-0 h-screen z-30 shrink-0 hidden lg:block border-r border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#0a0d18]">
+        <div className="sticky top-0 h-full z-30 shrink-0 hidden lg:block border-r border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#0a0d18] overflow-y-auto">
           <AppSidebar
             isCollapsed={isSidebarCollapsed}
             onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -163,7 +164,7 @@ export function PageShell({
         )}
 
         {/* Main Application Column */}
-        <div className="flex flex-1 flex-col min-w-0">
+        <div className="flex flex-1 flex-col h-full min-w-0 overflow-hidden">
           {/* Sticky Top Clean Header Bar */}
           <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur-md dark:border-slate-800/80 dark:bg-[#0a0d18]/95 sm:px-6 lg:px-8 xl:px-10 pt-safe shadow-sm">
             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -178,7 +179,7 @@ export function PageShell({
                     setIsSidebarCollapsed(!isSidebarCollapsed);
                   }
                 }}
-                className="h-9 w-9 text-slate-600 hover:text-slate-900 dark:text-slate-300 shrink-0"
+                className="h-10 w-10 text-slate-600 hover:text-slate-900 dark:text-slate-300 shrink-0 touch-target"
                 aria-label="Toggle sidebar menu"
                 title="Toggle Sidebar"
               >
@@ -186,7 +187,7 @@ export function PageShell({
               </Button>
 
               {/* Functional Search Bar with Instant Command Palette */}
-              <div ref={searchRef} className="relative max-w-md w-full hidden sm:block">
+              <div ref={searchRef} className="relative max-w-md w-full min-w-0 flex-1">
                 <form onSubmit={handleSearchSubmit} className="relative">
                   <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <Input
@@ -197,14 +198,14 @@ export function PageShell({
                       setSearchOpen(true);
                     }}
                     onFocus={() => setSearchOpen(true)}
-                    placeholder="Search jobs, tools, or press ⌘K..."
-                    className="h-9.5 w-full rounded-xl border-slate-200 bg-slate-50/90 pl-9 pr-12 text-xs focus:bg-white focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-800/60 dark:focus:bg-slate-800"
+                    placeholder="Search jobs, tools, ⌘K..."
+                    className="h-10 w-full rounded-xl border-slate-200 bg-slate-50/90 pl-9 pr-10 text-xs focus:bg-white focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-800/60 dark:focus:bg-slate-800"
                   />
                   {searchQuery ? (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -217,7 +218,7 @@ export function PageShell({
 
                 {/* Instant Search Results Dropdown */}
                 {searchOpen && (
-                  <div className="absolute left-0 right-0 top-11 z-50 overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-900 animate-scale-in">
+                  <div className="absolute left-0 right-0 top-12 z-50 overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-900 animate-scale-in w-[90vw] sm:w-full max-w-md">
                     <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                       {searchQuery ? 'Search Results' : 'Quick Access Navigation'}
                     </p>
@@ -343,8 +344,8 @@ export function PageShell({
             </div>
           </header>
 
-          {/* Main Body Content Container */}
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10 pb-safe max-w-[1440px] w-full mx-auto space-y-6">
+          {/* Main Body Content Container - Exclusive Scroll Container */}
+          <main className="flex-1 h-full overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 xl:px-10 pb-safe max-w-[1440px] w-full mx-auto space-y-6">
             <div className="animate-fade-in-up flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl text-slate-900 dark:text-white">

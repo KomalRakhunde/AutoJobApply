@@ -41,6 +41,7 @@ import {
   Sliders,
   Pin,
   PinOff,
+  X,
 } from 'lucide-react';
 
 interface NavItem {
@@ -114,8 +115,8 @@ const getRoleNavigation = (role: UserRole = 'student'): { core: NavItem[]; secon
     secondary: [
       { href: '/auto-apply', label: 'Auto-Apply Engine', icon: Zap, badge: 'AUTO' },
       { href: '/cover-letter', label: 'Cover Letter Generator', icon: FileText },
-      { href: '/interview-prep', label: 'Interview Prep', icon: MessageSquare },
-      { href: '/career-coach', label: 'AI Career Coach', icon: Compass, badge: 'NEW' },
+      { href: '/interview-prep', label: 'Interview Studio', icon: MessageSquare },
+      { href: '/career-roadmap', label: 'Career Roadmap', icon: TrendingUp, badge: 'NEW' },
       { href: '/email-sync', label: 'Email Inbox AI', icon: Mail },
       { href: '/pricing', label: 'Plans & Pricing', icon: Crown },
     ],
@@ -196,6 +197,18 @@ export function AppSidebar({
             title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           >
             <ChevronLeft className={`h-4 w-4 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} />
+          </Button>
+        )}
+
+        {onCloseMobile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCloseMobile}
+            className="flex lg:hidden h-9 w-9 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl touch-target"
+            title="Close Menu"
+          >
+            <X className="h-5 w-5" />
           </Button>
         )}
       </div>

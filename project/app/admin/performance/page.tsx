@@ -112,25 +112,30 @@ export default function AdminPerformancePage() {
         </div>
 
         {/* 2 Top Metric Cards Grid with Subtle Left Accent & Glow */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono">
-          <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-emerald-500 bg-white dark:bg-[#0f111a] bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent p-5 space-y-2 shadow-sm dark:shadow-xl hover:border-emerald-500/50 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] transition-all duration-300">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span className="text-xs font-bold uppercase tracking-wider">TEAM EFFICIENCY</span>
-              <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">94.2%</div>
-            <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+2.4% vs last week</p>
-          </Card>
+        {(() => {
+          const avgGoal = recruiters.length > 0 ? Math.round(recruiters.reduce((sum, r) => sum + r.goalPct, 0) / recruiters.length) : 0;
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono">
+              <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-emerald-500 bg-white dark:bg-[#0f111a] bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent p-5 space-y-2 shadow-sm dark:shadow-xl hover:border-emerald-500/50 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] transition-all duration-300">
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                  <span className="text-xs font-bold uppercase tracking-wider">TEAM EFFICIENCY</span>
+                  <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">{avgGoal}%</div>
+                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">Real database recruiter performance</p>
+              </Card>
 
-          <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-indigo-500 bg-white dark:bg-[#0f111a] bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent p-5 space-y-2 shadow-sm dark:shadow-xl hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span className="text-xs font-bold uppercase tracking-wider">ACTIVE REQUISITIONS</span>
-              <Zap className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-indigo-500 bg-white dark:bg-[#0f111a] bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent p-5 space-y-2 shadow-sm dark:shadow-xl hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300">
+                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                  <span className="text-xs font-bold uppercase tracking-wider">ACTIVE REQUISITIONS</span>
+                  <Zap className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">{totalActiveJobs}</div>
+                <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">Live Database Requisitions</p>
+              </Card>
             </div>
-            <div className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">{totalActiveJobs || 128}</div>
-            <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">Live Database Requisitions</p>
-          </Card>
-        </div>
+          );
+        })()}
 
         {/* Recruiter Scorecards with Left Accent & Glow Highlighting */}
         {loading ? (

@@ -79,6 +79,8 @@ export interface ResumeAnalysisResponse {
   weaknesses: string[];
   suggestions: string[];
   redFlags: string[];
+  summary?: string;
+  improvements?: string[];
 }
 
 export type CoverLetterStyle = 'professional' | 'friendly' | 'startup' | 'corporate';

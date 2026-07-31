@@ -147,7 +147,7 @@ export async function POST(req: Request) {
               <p style="margin: 4px 0;"><strong>Work Location:</strong> Remote</p>
               <p style="margin: 4px 0;"><strong>Stipend:</strong> 3 Months Internship; Post 3 months based on performance stipend will be provided.</p>
               <p style="margin: 4px 0;"><strong>Eligibility:</strong> AI Full Stack Development</p>
-              <p style="margin: 4px 0;"><strong>Reporting Supervisor:</strong> Sandhani Shaik</p>
+              <p style="margin: 4px 0;"><strong>Reporting Supervisor:</strong> Komal Rakhunde</p>
             </div>
 
             <h4 style="font-size: 14px; color: #0f172a; margin-top: 20px; font-weight: bold;">Key Responsibilities:</h4>

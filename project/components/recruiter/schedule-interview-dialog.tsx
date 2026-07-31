@@ -38,8 +38,8 @@ export function ScheduleInterviewDialog({
   const { toast } = useToast();
 
   const [roundType, setRoundType] = useState('Technical Round 2 (System Architecture)');
-  const [interviewerName, setInterviewerName] = useState('Sandhani Shaik (Lead Architect)');
-  const [interviewerEmail, setInterviewerEmail] = useState('sandhani@applyai.com');
+  const [interviewerName, setInterviewerName] = useState('Komal Rakhunde (Technical Lead)');
+  const [interviewerEmail, setInterviewerEmail] = useState('komal@applyai.com');
   const [scheduledDate, setScheduledDate] = useState('2026-08-04');
   const [scheduledTime, setScheduledTime] = useState('14:00');
   const [duration, setDuration] = useState('45');
