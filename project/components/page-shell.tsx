@@ -24,6 +24,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/lib/store/hooks';
 import { logout, setRole } from '@/lib/store/auth-slice';
 import type { UserRole } from '@/lib/types';
+import { getDisplayName, getUserInitials } from '@/lib/utils';
 import {
   Sparkles,
   Search,
@@ -45,6 +46,11 @@ import {
   GraduationCap,
   ChevronRight,
   TrendingUp,
+  Video,
+  Share2,
+  DollarSign,
+  Building2,
+  Users,
 } from 'lucide-react';
 
 const searchableItems = [
@@ -53,6 +59,12 @@ const searchableItems = [
   { label: 'Application Tracker', href: '/applications', type: 'Workflow', icon: KanbanSquare },
   { label: 'Auto-Apply Engine', href: '/auto-apply', type: 'Automation', icon: Zap },
   { label: 'Cover Letter Generator', href: '/cover-letter', type: 'AI Tool', icon: FileText },
+  { label: 'AI Video Resume Studio', href: '/video-resume', type: 'AI Media', icon: Video },
+  { label: 'LinkedIn Post AI', href: '/linkedin-posts', type: 'AI Social', icon: Share2 },
+  { label: 'AI Networking Assistant', href: '/networking', type: 'Outreach', icon: Compass },
+  { label: 'Salary Negotiation AI', href: '/negotiation', type: 'AI Finance', icon: DollarSign },
+  { label: 'Company Culture Insights', href: '/company-culture', type: 'Culture', icon: Building2 },
+  { label: 'Referral Finder AI', href: '/referrals', type: 'Referral', icon: Users },
   { label: 'Interview Studio', href: '/interview-prep', type: 'AI Tool', icon: MessageSquare },
   { label: 'Career Roadmap', href: '/career-roadmap', type: 'Roadmap', icon: TrendingUp },
   { label: 'Email Inbox AI', href: '/email-sync', type: 'Sync', icon: Mail },
@@ -90,8 +102,8 @@ export function PageShell({
   const role: UserRole = user?.role ?? 'student';
   const roleBadge = roleBadges[role] || roleBadges.student;
 
-  const username = user?.email ? user.email.split('@')[0] : 'komal.dharma';
-  const initials = username.slice(0, 2).toUpperCase();
+  const username = getDisplayName(user);
+  const initials = getUserInitials(username);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -345,7 +357,7 @@ export function PageShell({
           </header>
 
           {/* Main Body Content Container - Exclusive Scroll Container */}
-          <main className="flex-1 h-full overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 xl:px-10 pb-safe max-w-[1440px] w-full mx-auto space-y-6">
+          <main className="flex-1 h-full overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 pb-safe w-full space-y-6">
             <div className="animate-fade-in-up flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl text-slate-900 dark:text-white">

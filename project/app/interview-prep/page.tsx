@@ -36,6 +36,7 @@ import { useInterviewQuestions } from '@/lib/hooks/use-features';
 import type { InterviewQuestionsResponse } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAppSelector } from '@/lib/store/hooks';
+import { getDisplayName } from '@/lib/utils';
 
 // Custom Semi-Circle SVG Gauge Meter for PACE
 function PaceGauge({ wpm = 145 }: { wpm?: number }) {
@@ -99,25 +100,32 @@ function PaceGauge({ wpm = 145 }: { wpm?: number }) {
 
 const sampleQuestions = [
   {
-    text: "Tell me about a time you had to handle a difficult project requirement and how you resolved it.",
-    category: "Behavioral Round",
-    tip: "You mentioned 'Python' and 'Collaboration'. Good. Now try to elaborate on the specific **outcome** using the STAR method.",
-    keywords: ['Scalability', 'Stakeholders', 'Analytical', 'Roadmap', 'Optimization'],
-    missing: ['KPIs', 'A/B Testing'],
+    text: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target. Optimize for O(N) time complexity using a Hash Map.",
+    category: "Coding",
+    tip: "Explain your space-time trade-off clearly. Mention why a hash lookup gives O(1) time complexity compared to two nested loops O(N²).",
+    keywords: ['Hash Map', 'O(N) Time', 'Array Indexing', 'Lookup', 'Optimization'],
+    missing: ['Two-Pointers', 'Edge Cases'],
   },
   {
-    text: "How do you prioritize competing product roadmap features when engineering resources are tight?",
-    category: "Product Strategy",
-    tip: "Make sure to highlight your quantitative prioritization framework (e.g. RICE or MoSCoW) and trade-off analysis.",
-    keywords: ['Prioritization', 'Trade-offs', 'User Impact', 'Resource Allocation'],
-    missing: ['RICE Framework', 'Churn Rate'],
+    text: "Design a scalable URL Shortening Service (like bit.ly) capable of handling 100 Million daily active redirects with sub-50ms latency under high load.",
+    category: "Scenario Questions",
+    tip: "Break down your architecture into API Gateway, Hash Encoding (Base62), Distributed Caching (Redis), and Database Sharding.",
+    keywords: ['Base62 Encoding', 'Redis Cache', 'Database Sharding', 'CDN', 'Rate Limiter'],
+    missing: ['Consistent Hashing', 'Bloom Filters'],
   },
   {
-    text: "Describe a situation where a product feature launched with bugs. How did you manage stakeholder communication?",
-    category: "Crisis Management",
-    tip: "Emphasize transparency, root cause analysis (RCA), and preventative measures placed post-incident.",
-    keywords: ['Transparency', 'Root Cause', 'Post-Mortem', 'Mitigation'],
-    missing: ['SLA Impact', 'Retrospective'],
+    text: "Tell me about a time you had to handle a difficult project requirement or technical disagreement within your engineering team. How did you resolve it?",
+    category: "HR",
+    tip: "Follow the **STAR Method** (Situation, Task, Action, Result). Quantify your positive team outcome and leadership skills.",
+    keywords: ['STAR Method', 'Conflict Resolution', 'Active Listening', 'Consensus', 'Leadership'],
+    missing: ['Quantifiable Result', 'Empathy'],
+  },
+  {
+    text: "How does the Node.js Event Loop work under the hood, and how do Microtasks differ from Macrotasks in asynchronous execution?",
+    category: "Technical",
+    tip: "Discuss libuv, call stack, process.nextTick vs Promise.then microtasks, and setTimeout/setImmediate macrotasks.",
+    keywords: ['Event Loop', 'Libuv', 'Microtask Queue', 'Non-blocking I/O', 'Promises'],
+    missing: ['Worker Threads', 'Process.nextTick'],
   },
 ];
 
@@ -131,6 +139,10 @@ function InterviewPrepContent() {
   const [companyName, setCompanyName] = useState('Target Company');
   const [location, setLocation] = useState('Remote');
   const [roundType, setRoundType] = useState('Technical & Behavioral Round');
+  const [selectedCategory, setSelectedCategory] = useState<'All' | 'Technical' | 'HR' | 'Coding' | 'Scenario Questions'>('All');
+
+  // Category Pills
+  const categories = ['All', 'Technical', 'HR', 'Coding', 'Scenario Questions'] as const;
   const [isEditContextOpen, setIsEditContextOpen] = useState(false);
 
   // Question & Session State
@@ -143,8 +155,7 @@ function InterviewPrepContent() {
   const [clarityScore, setClarityScore] = useState(0);
   const [paceWpm, setPaceWpm] = useState(140);
 
-  const rawUsername = user?.email ? user.email.split('@')[0] : 'Student';
-  const formattedUsername = rawUsername.split('.')[0].charAt(0).toUpperCase() + rawUsername.split('.')[0].slice(1);
+  const formattedUsername = getDisplayName(user);
 
   // Live Timer Effect
   useEffect(() => {
@@ -188,6 +199,39 @@ function InterviewPrepContent() {
     <PageShell title="" subtitle="">
       <div className="max-w-6xl mx-auto space-y-6 pb-16 animate-fade-in px-2 sm:px-4 font-sans text-sm">
         
+        {/* Top Header & Category Filter Selector */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 dark:border-slate-800/80 pb-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+              AI Interview Preparation Studio
+            </h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 font-normal mt-0.5">
+              Practice real-time technical, system design, and behavioral interview simulations.
+            </p>
+          </div>
+
+          {/* Category Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 dark:bg-[#121522] p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => {
+                  setSelectedCategory(cat);
+                  const foundIdx = sampleQuestions.findIndex((q) => cat === 'All' || q.category === cat);
+                  if (foundIdx !== -1) setCurrentQuestionIdx(foundIdx);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
+                  selectedCategory === cat
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Workspace Grid Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           

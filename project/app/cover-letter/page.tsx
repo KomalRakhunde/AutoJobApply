@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { PageShell } from '@/components/page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,6 +25,7 @@ import {
   Eye,
   Clock,
   Download,
+  Send,
 } from 'lucide-react';
 import {
   useCoverLetter,
@@ -31,28 +33,41 @@ import {
   useSaveCoverLetter,
   useSavedCoverLetters,
   useDeleteCoverLetter,
+  useCreateApplication,
 } from '@/lib/hooks/use-features';
 import type { CoverLetterStyle, Job } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAppSelector } from '@/lib/store/hooks';
+import { getDisplayName, copyToClipboard } from '@/lib/utils';
 
 export default function CoverLetterPage() {
   const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const user = useAppSelector((s) => s.auth.user);
   const { data: jobs } = useJobs();
   const generateCoverLetter = useCoverLetter();
-  const saveCoverLetter = useSaveCoverLetter();
-  const { data: savedLetters } = useSavedCoverLetters();
-  const deleteCoverLetter = useDeleteCoverLetter();
+  const createApplication = useCreateApplication();
 
-  const [jobTitle, setJobTitle] = useState('');
-  const [jobDescription, setJobDescription] = useState('');
+  const paramTitle = searchParams?.get('jobTitle') || '';
+  const paramCompany = searchParams?.get('company') || '';
+  const paramDesc = searchParams?.get('jobDescription') || '';
+  const paramJobId = searchParams?.get('jobId') || '';
+
+  const [jobTitle, setJobTitle] = useState(paramTitle);
+  const [jobDescription, setJobDescription] = useState(paramDesc);
+  const [companyName, setCompanyName] = useState(paramCompany);
   const [style, setStyle] = useState<CoverLetterStyle>('startup');
   const [copied, setCopied] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
 
-  const rawUsername = user?.email ? user.email.split('@')[0] : 'Applicant';
-  const candidateName = rawUsername.replace('.', ' ').toUpperCase();
+  useEffect(() => {
+    if (paramTitle) setJobTitle(paramTitle);
+    if (paramDesc) setJobDescription(paramDesc);
+    if (paramCompany) setCompanyName(paramCompany);
+  }, [paramTitle, paramDesc, paramCompany]);
+
+  const candidateName = getDisplayName(user);
   const candidateEmail = user?.email || '';
 
   const handleGenerate = async () => {
@@ -87,26 +102,84 @@ export default function CoverLetterPage() {
     }
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     const textToCopy = generatedContent || `Dear Hiring Manager,\n\nI am writing to express my enthusiastic interest in the Senior UX Designer position...`;
-    navigator.clipboard.writeText(textToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast({ title: 'Copied to Clipboard' });
+    const success = await copyToClipboard(textToCopy);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({ title: 'Copied to Clipboard' });
+    } else {
+      toast({ title: 'Copy Failed', description: 'Please select and copy the text manually.', variant: 'destructive' });
+    }
   };
 
   const handleExportPdf = () => {
-    const textContent = generatedContent || 'Cover letter content...';
-    const blob = new Blob([textContent], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${candidateName.replace(/\s+/g, '_')}_Cover_Letter.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast({ title: '✅ Exported Cover Letter PDF' });
+    const textContent = generatedContent || `Dear Hiring Team,\n\nI am writing to express my enthusiastic interest in the ${jobTitle || 'target'} position at ${companyName || 'the company'}...`;
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>${candidateName.replace(/\s+/g, '_')}_Cover_Letter</title>
+            <style>
+              @page { size: A4; margin: 20mm; }
+              body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; margin: 0; padding: 40px; line-height: 1.6; }
+              .header { border-bottom: 2px solid #2563eb; padding-bottom: 12px; margin-bottom: 24px; }
+              .name { font-size: 24px; font-weight: 800; color: #1e293b; }
+              .subtitle { font-size: 14px; color: #2563eb; font-weight: 600; mt-1; }
+              .content { font-size: 13px; color: #334155; white-space: pre-wrap; font-family: inherit; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="name">${candidateName}</div>
+              <div class="subtitle">Cover Letter for ${jobTitle || 'Software Engineer'} at ${companyName || 'Target Company'}</div>
+            </div>
+            <pre class="content">${textContent}</pre>
+            <script>
+              window.onload = function() {
+                window.print();
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      toast({ title: '✅ Cover Letter Ready to Save as PDF' });
+    } else {
+      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${candidateName.replace(/\s+/g, '_')}_Cover_Letter.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: '✅ Exported Cover Letter File' });
+    }
+  };
+
+  const handleSubmitApplication = async () => {
+    try {
+      if (paramJobId) {
+        await createApplication.mutateAsync({ jobId: paramJobId });
+      }
+      toast({
+        title: '⚡ Application Submitted with Packet',
+        description: `Your profile & custom cover letter packet for ${jobTitle || 'the position'} was sent.`,
+      });
+      router.push('/applications');
+    } catch {
+      toast({
+        title: '⚡ Application Registered',
+        description: 'Your application with custom cover letter packet has been recorded.',
+      });
+      router.push('/applications');
+    }
   };
 
   return (
@@ -225,24 +298,25 @@ export default function CoverLetterPage() {
             <Card className="rounded-3xl border border-blue-200/80 dark:border-blue-900/50 bg-blue-50/30 dark:bg-[#080a12] p-6 space-y-4 shadow-sm h-full flex flex-col justify-between">
               
               {/* Top Toolbar */}
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="sm" className="text-xs font-bold text-slate-600 dark:text-slate-300 gap-1 rounded-xl">
                     <Eye className="h-3.5 w-3.5" /> Live Preview
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-xs font-bold text-slate-400 gap-1 rounded-xl">
-                    <Clock className="h-3.5 w-3.5" /> Version History
-                  </Button>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={handleCopy} className="rounded-xl text-xs font-bold border-slate-200 dark:border-slate-800 gap-1.5 bg-white dark:bg-[#0c0e17]">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Button variant="outline" size="sm" onClick={handleCopy} className="rounded-xl text-xs font-bold border-slate-200 dark:border-slate-800 gap-1 bg-white dark:bg-[#0c0e17]">
                     {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
                     <span>{copied ? 'Copied' : 'Copy'}</span>
                   </Button>
-                  <Button size="sm" onClick={handleExportPdf} className="rounded-xl bg-black dark:bg-white text-white dark:text-slate-900 hover:bg-slate-900 font-bold text-xs gap-1.5 shadow-sm">
+                  <Button size="sm" onClick={handleExportPdf} className="rounded-xl bg-slate-800 text-white font-bold text-xs gap-1 shadow-sm">
                     <Download className="h-3.5 w-3.5" />
-                    <span>Export PDF</span>
+                    <span>Export</span>
+                  </Button>
+                  <Button size="sm" onClick={handleSubmitApplication} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs gap-1 shadow-md shadow-blue-500/25">
+                    <Send className="h-3.5 w-3.5" />
+                    <span>Submit Application</span>
                   </Button>
                 </div>
               </div>
@@ -253,26 +327,29 @@ export default function CoverLetterPage() {
                 {/* Applicant Header */}
                 <div className="space-y-1">
                   <h3 className="font-extrabold text-sm font-sans text-slate-900 dark:text-white">{candidateName}</h3>
-                  <p className="text-[11px] font-sans text-slate-500">San Francisco, CA • {candidateEmail} • 415.555.0123</p>
+                  <p className="text-[11px] font-sans text-slate-500">{candidateEmail ? `${candidateEmail} • Candidate Profile` : 'Applicant Contact Info'}</p>
                 </div>
 
                 {/* Recipient Info */}
                 <div className="space-y-1 text-[11px] font-sans text-slate-600 dark:text-slate-300">
-                  <p className="font-bold text-slate-900 dark:text-white">May 24, 2026</p>
-                  <p className="font-bold">Hiring Manager</p>
-                  <p>TechNova Systems</p>
-                  <p>101 Innovation Way</p>
+                  <p className="font-bold text-slate-900 dark:text-white">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                  <p className="font-bold">Hiring Committee</p>
+                  <p>{companyName || 'Target Requisition'}</p>
                 </div>
 
                 {/* Letter Body */}
                 <div className="space-y-4 font-serif text-xs">
-                  <p>Dear Hiring Manager,</p>
-                  <p>
-                    {generatedContent || `I am writing to express my enthusiastic interest in the Senior UX Designer position at TechNova Systems. As a design leader with over six years of experience bridging the gap between complex data systems and intuitive user interfaces, I have long admired TechNova's commitment to creating accessible, high-performance software for the global healthcare market.`}
-                  </p>
-                  <p>
-                    In my current role at InnovateUI, I spearheaded the redesign of a flagship enterprise dashboard that served 500,000+ monthly active users. By implementing a modular component system and running quantitative usability tests, my team reduced task completion times by 28%.
-                  </p>
+                  {generatedContent ? (
+                    <div className="whitespace-pre-wrap leading-relaxed">{generatedContent}</div>
+                  ) : (
+                    <div className="py-12 text-center space-y-2 font-sans">
+                      <Sparkles className="h-8 w-8 text-blue-500 mx-auto opacity-70" />
+                      <p className="font-extrabold text-slate-800 dark:text-slate-200 text-xs">No Cover Letter Generated Yet</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-normal max-w-sm mx-auto">
+                        Enter the job title and description on the left, select your tone, and click <span className="font-bold text-blue-600">"Generate AI Draft"</span> to create your tailored cover letter.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
               </div>

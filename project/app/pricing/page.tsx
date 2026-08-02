@@ -129,19 +129,11 @@ export default function PricingPage() {
               <CardContent className="p-0 space-y-3 text-xs text-slate-300 pt-2">
                 <div className="flex items-center gap-2.5">
                   <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>20 auto-applications per day</span>
+                  <span className="font-bold text-white">20 applications/day</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>Basic ATS Resume Score</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>Standard AI Cover Letter Generator</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>Basic Job Search & Pipeline Tracker</span>
+                  <span>Basic AI Assistant</span>
                 </div>
               </CardContent>
             </div>
@@ -183,23 +175,19 @@ export default function PricingPage() {
               <CardContent className="p-0 space-y-3 text-xs text-slate-300 pt-2">
                 <div className="flex items-center gap-2.5">
                   <Check className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span className="font-bold text-white">Unlimited Auto-Applications</span>
+                  <span className="font-bold text-white">Unlimited Applications</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Check className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>Jobscan-Level ATS Match & Keyword Audit</span>
+                  <span className="font-bold text-white">Unlimited Resumes</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Check className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>AI Cover Letter Generator (4 Tones)</span>
+                  <span>Interview AI Studio</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Check className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>Priority Interview Prep & Mock AI Questions</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <Check className="h-4 w-4 text-blue-400 shrink-0" />
-                  <span>Email Sync & Auto Outreach Tracker</span>
+                  <span>Application Analytics & Insights</span>
                 </div>
               </CardContent>
             </div>
@@ -219,7 +207,7 @@ export default function PricingPage() {
                   <CardTitle className="text-lg sm:text-xl font-bold flex items-center gap-1.5 text-white">
                     <Building2 className="h-5 w-5 text-indigo-400 shrink-0" /> Enterprise
                   </CardTitle>
-                  <Badge variant="outline" className="text-xs border-slate-700 text-slate-300">Recruiter</Badge>
+                  <Badge variant="outline" className="text-xs border-slate-700 text-slate-300">Recruiters</Badge>
                 </div>
                 <CardDescription className="text-xs text-slate-400 pt-1">
                   For staffing agencies & recruiting teams
@@ -235,19 +223,19 @@ export default function PricingPage() {
               <CardContent className="p-0 space-y-3 text-xs text-slate-300 pt-2">
                 <div className="flex items-center gap-2.5">
                   <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>Bulk Resume Parsing & AI Sourcing</span>
+                  <span className="font-bold text-white">Recruiters Multi-Seat Management</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>Job Requisition Posting & Analytics</span>
+                  <span>Bulk Applications & Parsing</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>AI Candidate Ranking & Match Scores</span>
+                  <span>Candidate Management System</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>Custom Hiring Workflows & SLA Support</span>
+                  <span>Full REST API Access</span>
                 </div>
               </CardContent>
             </div>

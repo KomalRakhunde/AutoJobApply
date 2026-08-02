@@ -8,6 +8,7 @@ import { logout, setRole } from '@/lib/store/auth-slice';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { UserRole } from '@/lib/types';
+import { getDisplayName, getUserInitials } from '@/lib/utils';
 import { usePinnedFeatures } from '@/lib/hooks/use-pinned-features';
 import {
   LayoutDashboard,
@@ -42,6 +43,9 @@ import {
   Pin,
   PinOff,
   X,
+  Video,
+  Share2,
+  DollarSign,
 } from 'lucide-react';
 
 interface NavItem {
@@ -115,6 +119,12 @@ const getRoleNavigation = (role: UserRole = 'student'): { core: NavItem[]; secon
     secondary: [
       { href: '/auto-apply', label: 'Auto-Apply Engine', icon: Zap, badge: 'AUTO' },
       { href: '/cover-letter', label: 'Cover Letter Generator', icon: FileText },
+      { href: '/video-resume', label: 'AI Video Resume Studio', icon: Video, badge: 'VIDEO' },
+      { href: '/linkedin-posts', label: 'LinkedIn Post AI', icon: Share2 },
+      { href: '/networking', label: 'AI Networking Assistant', icon: Compass },
+      { href: '/negotiation', label: 'Salary Negotiation AI', icon: DollarSign },
+      { href: '/company-culture', label: 'Company Culture Insights', icon: Building2 },
+      { href: '/referrals', label: 'Referral Finder AI', icon: Users },
       { href: '/interview-prep', label: 'Interview Studio', icon: MessageSquare },
       { href: '/career-roadmap', label: 'Career Roadmap', icon: TrendingUp, badge: 'NEW' },
       { href: '/email-sync', label: 'Email Inbox AI', icon: Mail },
@@ -157,8 +167,8 @@ export function AppSidebar({
     router.replace('/login');
   };
 
-  const username = user?.email ? user.email.split('@')[0] : 'Komal.dharma';
-  const initials = username.slice(0, 2).toUpperCase();
+  const username = getDisplayName(user);
+  const initials = getUserInitials(username);
 
   const { isPinned, togglePin } = usePinnedFeatures();
 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAppSelector } from '@/lib/store/hooks';
 import { useApplications } from '@/lib/hooks/use-features';
 import { usePinnedFeatures, ALL_PINNABLE_FEATURES } from '@/lib/hooks/use-pinned-features';
+import { getDisplayName } from '@/lib/utils';
 import { PageShell } from '@/components/page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,12 +52,17 @@ import RecruiterDashboardPage from './recruiter/page';
 import AdminDashboardPage from './admin/page';
 import SuperAdminDashboardPage from './super-admin/page';
 
+import { AiSetupWizard } from '@/components/ai-setup-wizard';
+import { ScheduleEventDialog } from '@/components/schedule-event-dialog';
+
 export default function DashboardPage() {
   const user = useAppSelector((s) => s.auth.user);
   const { data: realApplications = [] } = useApplications();
   const { pinnedHrefs, togglePin, clearAllPins, hasPins } = usePinnedFeatures();
   const [chartPeriod, setChartPeriod] = useState<'monthly' | 'weekly'>('monthly');
   const [mounted, setMounted] = useState(false);
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [scheduledEventsCount, setScheduledEventsCount] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -74,8 +80,7 @@ export default function DashboardPage() {
     return <SuperAdminDashboardPage />;
   }
 
-  const rawUsername = user?.email ? user.email.split('@')[0] : 'Student';
-  const formattedUsername = rawUsername.split('.')[0].charAt(0).toUpperCase() + rawUsername.split('.')[0].slice(1);
+  const formattedUsername = getDisplayName(user);
 
   const appsList = realApplications || [];
   const totalApplied = appsList.length;
@@ -121,20 +126,19 @@ export default function DashboardPage() {
               Welcome back, {formattedUsername}.
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 font-normal mt-0.5">
-              You have {interviewCount} interviews scheduled this week. Keep the momentum going!
+              You have {interviewCount + scheduledEventsCount} interviews scheduled this week. Keep the momentum going!
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/interview-prep">
-              <Button
-                variant="outline"
-                className="rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c0e17] text-slate-700 dark:text-slate-200 font-bold text-xs gap-2 py-2 px-4 shadow-xs"
-              >
-                <Calendar className="h-4 w-4 text-slate-500" />
-                <span>Schedule Event</span>
-              </Button>
-            </Link>
+            <Button
+              variant="outline"
+              onClick={() => setScheduleDialogOpen(true)}
+              className="rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c0e17] text-slate-700 dark:text-slate-200 font-bold text-xs gap-2 py-2 px-4 shadow-xs"
+            >
+              <Calendar className="h-4 w-4 text-slate-500" />
+              <span>Schedule Event</span>
+            </Button>
 
             <Link href="/jobs">
               <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-2 px-4 rounded-xl shadow-md gap-2">
@@ -144,6 +148,9 @@ export default function DashboardPage() {
             </Link>
           </div>
         </div>
+
+        {/* 4-Step Setup & AI Autopilot Control Banner */}
+        <AiSetupWizard />
 
         {/* 4 Top Metric KPI Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-sans">
@@ -501,6 +508,13 @@ export default function DashboardPage() {
             <a href="#resources" className="hover:underline">Career Resources</a>
           </div>
         </div>
+
+        {/* Schedule Event Modal */}
+        <ScheduleEventDialog
+          open={scheduleDialogOpen}
+          onOpenChange={setScheduleDialogOpen}
+          onEventSaved={() => setScheduledEventsCount((prev) => prev + 1)}
+        />
 
       </div>
     </PageShell>

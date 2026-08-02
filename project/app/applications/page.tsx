@@ -45,7 +45,7 @@ export default function ApplicationsPage() {
   const updateApplication = useUpdateApplication();
   const deleteApplication = useDeleteApplication();
 
-  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  const [viewMode, setViewMode] = useState<'board' | 'list' | 'timeline'>('board');
   const [activeMobileStage, setActiveMobileStage] = useState<ApplicationStatus>('applied');
 
   const grouped = useMemo(() => {
@@ -126,6 +126,17 @@ export default function ApplicationsPage() {
                 <List className="h-3.5 w-3.5" />
                 <span>List</span>
               </button>
+              <button
+                onClick={() => setViewMode('timeline')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === 'timeline'
+                    ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Clock className="h-3.5 w-3.5" />
+                <span>Timeline</span>
+              </button>
             </div>
 
             <Link href="/jobs">
@@ -159,16 +170,69 @@ export default function ApplicationsPage() {
               </button>
             );
           })}
-        </div>
-
-        {/* Kanban Board Grid */}
+        </div>        {/* Applications View Modes */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <Skeleton className="h-96 w-full rounded-3xl" />
             <Skeleton className="h-96 w-full rounded-3xl" />
             <Skeleton className="h-96 w-full rounded-3xl" />
           </div>
+        ) : viewMode === 'timeline' ? (
+          /* Timeline Chronological View */
+          <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0c0e17] p-6 space-y-6 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <Clock className="h-4 w-4 text-blue-600" />
+                <span>Application Activity Timeline</span>
+              </h3>
+              <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-950 font-bold text-xs">
+                {(applications ?? []).length} Chronological Records
+              </Badge>
+            </div>
+
+            <div className="space-y-6 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
+              {(applications ?? []).length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-400">
+                  No application activity recorded in timeline yet.
+                </div>
+              ) : (
+                (applications ?? []).map((app) => (
+                  <div key={app.id} className="relative flex items-start gap-4 pl-8">
+                    <div className="absolute left-1.5 top-1.5 h-4 w-4 rounded-full bg-blue-600 border-2 border-white dark:border-[#0c0e17] shadow-xs" />
+                    
+                    <div className="flex-1 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-[#121522] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">{app.job?.title ?? 'Position Applied'}</h4>
+                          <Badge className="bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-[10px] uppercase font-bold">
+                            {app.status}
+                          </Badge>
+                        </div>
+                        <span className="text-[11px] text-slate-400 font-mono">{new Date(app.createdAt).toLocaleString()}</span>
+                      </div>
+
+                      <p className="text-xs text-slate-500 font-normal">
+                        {app.job?.company ?? 'Company'} • {app.job?.location ?? 'Remote'}
+                      </p>
+
+                      {app.status === 'interview' && (
+                        <div className="pt-2">
+                          <Link href={`/interview?jobTitle=${encodeURIComponent(app.job?.title || '')}&company=${encodeURIComponent(app.job?.company || '')}`}>
+                            <Button className="h-8 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl gap-1.5">
+                              <Video className="h-3.5 w-3.5" />
+                              <span>Launch AI Voice Interview Room</span>
+                            </Button>
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
         ) : (
+          /* Kanban Board / List Grid */
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5 items-start">
             {APPLICATION_STATUSES.map((statusObj) => {
               const list = grouped.get(statusObj.value) ?? [];
@@ -202,73 +266,73 @@ export default function ApplicationsPage() {
                           key={app.id}
                           className="relative rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#121522] p-4 space-y-3 shadow-xs hover:shadow-md transition-all group"
                         >
-                          {/* Top row: Logo & Dropdown */}
-                          <div className="flex items-start justify-between">
-                            <Avatar className="h-9 w-9 border border-slate-200 dark:border-slate-800 rounded-xl">
-                              <AvatarFallback className="bg-slate-100 dark:bg-slate-800 font-extrabold text-slate-900 dark:text-white text-xs">
-                                {app.job?.company ? app.job.company.charAt(0) : 'C'}
-                              </AvatarFallback>
-                            </Avatar>
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                {app.job?.title ?? 'Position Applied'}
+                              </h4>
+                              <p className="text-xs text-slate-500 font-medium">
+                                {app.job?.company ?? 'Company'}
+                              </p>
+                            </div>
 
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg touch-target">
-                                  <MoreVertical className="h-4 w-4" />
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg"
+                                >
+                                  <MoreVertical className="h-3.5 w-3.5" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="font-sans text-xs">
-                                <DropdownMenuLabel>Move to Stage</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {APPLICATION_STATUSES.map((s) => (
-                                  <DropdownMenuItem
-                                    key={s.value}
-                                    onClick={() => handleStatusChange(app.id, s.value)}
-                                    disabled={app.status === s.value}
-                                  >
-                                    {s.label}
-                                  </DropdownMenuItem>
-                                ))}
-                                <DropdownMenuSeparator />
+                              <DropdownMenuContent align="end" className="rounded-xl font-sans text-xs">
+                                <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'applied')}>
+                                  Mark as Applied
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'assessment')}>
+                                  Mark as Assessment
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'interview')}>
+                                  Mark as Interview
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'offer')}>
+                                  Mark as Offer
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'rejected')}>
+                                  Mark as Rejected
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleStatusChange(app.id, 'joined')}>
+                                  Mark as Joined
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleDelete(app.id)}
-                                  className="text-rose-600 focus:text-rose-600 font-bold"
+                                  className="text-rose-600 font-bold"
                                 >
-                                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                                  Delete
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
 
-                          {/* Role & Company */}
-                          <div>
-                            <h4 className="font-extrabold text-slate-900 dark:text-white text-sm">
-                              {app.job?.title ?? 'Position Applied'}
-                            </h4>
-                            <p className="text-xs text-slate-500 font-normal mt-0.5">
-                              {app.job?.company ?? 'Company'} • {app.job?.location ?? 'Remote'}
-                            </p>
-                          </div>
+                          {/* AUTO-APPLIED BY AI BADGE */}
+                          <Badge className="bg-indigo-100 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 font-extrabold text-[9px] px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 w-fit">
+                            <Sparkles className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
+                            <span>AUTO-APPLIED BY AI</span>
+                          </Badge>
 
-                          {/* Footer details */}
-                          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400">
-                            <span>{new Date(app.createdAt).toLocaleDateString()}</span>
-
-                            {app.status === 'interview' && (
-                              <Badge className="bg-rose-600 text-white font-bold text-[9px] px-2 py-0.5 rounded">
-                                TOMORROW
-                              </Badge>
-                            )}
-
-                            {app.status === 'offer' && (
-                              <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 font-bold text-[9px] px-2 py-0.5 rounded">
-                                TOP PRIORITY
-                              </Badge>
-                            )}
-
-                            {app.status === 'applied' && (
-                              <Paperclip className="h-3.5 w-3.5 text-slate-400" />
-                            )}
-                          </div>
+                          {/* 1-Click Launch AI Voice Interview Button */}
+                          {app.status === 'interview' && (
+                            <Link
+                              href={`/interview?jobTitle=${encodeURIComponent(app.job?.title || '')}&company=${encodeURIComponent(app.job?.company || '')}`}
+                              className="block pt-1"
+                            >
+                              <Button className="w-full h-8 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] rounded-xl gap-1.5 shadow-sm shadow-blue-500/20">
+                                <Video className="h-3.5 w-3.5" />
+                                <span>Launch AI Voice Interview</span>
+                              </Button>
+                            </Link>
+                          )}
                         </Card>
                       ))
                     ) : (

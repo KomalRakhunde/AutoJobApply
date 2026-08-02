@@ -33,6 +33,8 @@ const education_module_1 = require("./education/education.module");
 const experience_module_1 = require("./experience/experience.module");
 const certification_module_1 = require("./certification/certification.module");
 const resume_parser_module_1 = require("./resume-parser/resume-parser.module");
+const storage_module_1 = require("./storage/storage.module");
+const search_module_1 = require("./search/search.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -62,6 +64,8 @@ exports.AppModule = AppModule = __decorate([
             experience_module_1.ExperienceModule,
             certification_module_1.CertificationModule,
             resume_parser_module_1.ResumeParserModule,
+            storage_module_1.StorageModule,
+            search_module_1.SearchModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

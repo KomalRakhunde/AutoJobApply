@@ -32,20 +32,8 @@ import {
   X,
   ChevronRight,
 } from 'lucide-react';
+import { useMemo } from 'react';
 import Link from 'next/link';
-
-const navLinks = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, enabled: true },
-  { href: '/auto-apply', label: 'Auto-Apply', icon: Bot, enabled: true },
-  { href: '/resume', label: 'Resume & ATS', icon: Target, enabled: true },
-  { href: '/jobs', label: 'Jobs', icon: Briefcase, enabled: true },
-  { href: '/applications', label: 'Tracker', icon: KanbanSquare, enabled: true },
-  { href: '/cover-letter', label: 'Cover Letter', icon: FileText, enabled: true },
-  { href: '/interview-prep', label: 'Interview', icon: MessageSquare, enabled: true },
-  { href: '/career-coach', label: 'Coach', icon: Compass, enabled: true },
-  { href: '/email-sync', label: 'Email AI', icon: Mail, enabled: true },
-  { href: '/pricing', label: 'Plans', icon: Crown, enabled: true },
-];
 
 export function AppNav() {
   const router = useRouter();
@@ -53,6 +41,47 @@ export function AppNav() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((s) => s.auth.user);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const role = user?.role || 'student';
+
+  const activeNavLinks = useMemo(() => {
+    if (role === 'recruiter') {
+      return [
+        { href: '/dashboard/recruiter', label: 'Recruiter Hub', icon: LayoutDashboard, enabled: true },
+        { href: '/sourcing', label: 'Talent Sourcing', icon: Target, enabled: true },
+        { href: '/jobs', label: 'Job Requisitions', icon: Briefcase, enabled: true },
+        { href: '/interview-prep', label: 'Interviews', icon: MessageSquare, enabled: true },
+        { href: '/profile', label: 'Profile', icon: UserIcon, enabled: true },
+      ];
+    }
+    if (role === 'admin') {
+      return [
+        { href: '/dashboard/admin', label: 'Admin Panel', icon: LayoutDashboard, enabled: true },
+        { href: '/admin/performance', label: 'Performance', icon: Target, enabled: true },
+        { href: '/profile', label: 'Profile', icon: UserIcon, enabled: true },
+      ];
+    }
+    if (role === 'super_admin') {
+      return [
+        { href: '/dashboard/super-admin', label: 'Super Admin Hub', icon: LayoutDashboard, enabled: true },
+        { href: '/admin/performance', label: 'System Metrics', icon: Target, enabled: true },
+        { href: '/profile', label: 'Security & RBAC', icon: UserIcon, enabled: true },
+      ];
+    }
+
+    return [
+      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, enabled: true },
+      { href: '/auto-apply', label: 'Auto-Apply', icon: Bot, enabled: true },
+      { href: '/resume', label: 'Resume & ATS', icon: Target, enabled: true },
+      { href: '/jobs', label: 'Jobs', icon: Briefcase, enabled: true },
+      { href: '/applications', label: 'Tracker', icon: KanbanSquare, enabled: true },
+      { href: '/cover-letter', label: 'Cover Letter', icon: FileText, enabled: true },
+      { href: '/interview-prep', label: 'Interview', icon: MessageSquare, enabled: true },
+      { href: '/career-coach', label: 'Coach', icon: Compass, enabled: true },
+      { href: '/email-sync', label: 'Email AI', icon: Mail, enabled: true },
+      { href: '/pricing', label: 'Plans', icon: Crown, enabled: true },
+    ];
+  }, [role]);
 
   // Close mobile drawer when pathname changes
   useEffect(() => {
@@ -90,7 +119,7 @@ export function AppNav() {
 
         {/* Desktop Navigation Links */}
         <nav className="hidden items-center gap-0.5 xl:flex">
-          {navLinks.map((link) => {
+          {activeNavLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname === link.href;
             return (
@@ -169,7 +198,7 @@ export function AppNav() {
               Navigation Menu
             </p>
             <div className="space-y-1">
-              {navLinks.map((link) => {
+              {activeNavLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname === link.href;
                 return (

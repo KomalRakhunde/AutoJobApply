@@ -21,13 +21,18 @@ import {
   CheckCircle2,
   AlertTriangle,
   Sliders,
+  SlidersHorizontal,
   DollarSign,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useCreateApplication, useJobs } from '@/lib/hooks/use-features';
 import type { AutoApplyConfig, AutoApplyLog } from '@/lib/types';
 
 export default function AutoApplyPage() {
   const { toast } = useToast();
+  const { data: jobs } = useJobs();
+  const createApplication = useCreateApplication();
+
   const [config, setConfig] = useState<AutoApplyConfig>({
     enabled: true,
     minSalary: '$120k',
@@ -38,13 +43,15 @@ export default function AutoApplyPage() {
     maxDailyApplications: 150,
     connectedPortals: [
       { name: 'LinkedIn Premium', connected: true },
-      { name: 'Indeed/Glassdoor', connected: true },
-      { name: 'Greenhouse/Lever', connected: false },
+      { name: 'Naukri.com', connected: true },
+      { name: 'Indeed / Glassdoor', connected: true },
+      { name: 'Greenhouse / Lever', connected: true },
     ],
   });
 
   const [jobType, setJobType] = useState<'Full-time' | 'Contract' | 'Remote'>('Full-time');
   const [salaryValue, setSalaryValue] = useState([120]);
+  const [appliedCount, setAppliedCount] = useState(84);
   const [logs, setLogs] = useState<AutoApplyLog[]>([
     { id: '1', timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }), jobTitle: 'Auto-Apply Automation Engine initialized.', company: 'SYSTEM', portal: 'CORE', status: 'submitted', matchScore: 100 },
     { id: '2', timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }), jobTitle: 'Monitoring active job boards and target matches...', company: 'DISPATCH', portal: 'LISTEN', status: 'submitted', matchScore: 100 },
@@ -55,22 +62,34 @@ export default function AutoApplyPage() {
     if (config.enabled) {
       intervalId = setInterval(() => {
         const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-        const newLog: AutoApplyLog = {
-          id: `log-${Date.now()}`,
-          timestamp: time,
-          company: 'DISPATCH',
-          jobTitle: `Scanning job listings matching salary threshold ($${salaryValue[0]}k+)...`,
-          portal: 'SEARCH',
-          status: 'submitted',
-          matchScore: 90,
-        };
-        setLogs((prev) => [...prev.slice(-49), newLog]);
-      }, 10000);
+        const targetJobs = jobs || [];
+        const randomJob = targetJobs[Math.floor(Math.random() * targetJobs.length)];
+        const targetTitle = randomJob ? `${randomJob.title} at ${randomJob.company}` : 'Software Engineer Requisition';
+        const portalName = randomJob?.company.length % 3 === 0 ? 'LinkedIn' : randomJob?.company.length % 3 === 1 ? 'Naukri' : 'Indeed';
+
+        if (randomJob) {
+          createApplication.mutate({ jobId: randomJob.id });
+        }
+
+        setAppliedCount((c) => Math.min(c + 1, config.maxDailyApplications));
+
+        // 6-Step Autonomous Auto-Apply Pipeline Log Stream
+        const steps: AutoApplyLog[] = [
+          { id: `log-${Date.now()}-1`, timestamp: time, company: randomJob?.company || 'AUTOMATION', jobTitle: `[STEP 1/6] Open Job: Sourcing ${targetTitle} via ${portalName}`, portal: portalName, status: 'submitted', matchScore: 94 },
+          { id: `log-${Date.now()}-2`, timestamp: time, company: randomJob?.company || 'AUTOMATION', jobTitle: `[STEP 2/6] Fill Form: Auto-filling candidate fields & screening questions...`, portal: portalName, status: 'submitted', matchScore: 94 },
+          { id: `log-${Date.now()}-3`, timestamp: time, company: randomJob?.company || 'AUTOMATION', jobTitle: `[STEP 3/6] Upload Resume: Attaching master ATS-optimized PDF resume...`, portal: portalName, status: 'submitted', matchScore: 94 },
+          { id: `log-${Date.now()}-4`, timestamp: time, company: randomJob?.company || 'AUTOMATION', jobTitle: `[STEP 4/6] Upload Cover Letter: Attaching tailored AI cover letter...`, portal: portalName, status: 'submitted', matchScore: 94 },
+          { id: `log-${Date.now()}-5`, timestamp: time, company: randomJob?.company || 'AUTOMATION', jobTitle: `[STEP 5/6] Submit: Transmitting application packet to employer portal...`, portal: portalName, status: 'submitted', matchScore: 94 },
+          { id: `log-${Date.now()}-6`, timestamp: time, company: randomJob?.company || 'AUTOMATION', jobTitle: `[STEP 6/6] Save Confirmation: Registered to Application Pipeline Tracker!`, portal: 'CONFIRMED', status: 'submitted', matchScore: 94 },
+        ];
+
+        setLogs((prev) => [...prev.slice(-44), ...steps]);
+      }, 7000);
     }
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [config.enabled, salaryValue]);
+  }, [config.enabled, salaryValue, jobs, createApplication, config.maxDailyApplications]);
 
   const toggleAutomation = () => {
     const nextState = !config.enabled;
@@ -131,13 +150,16 @@ export default function AutoApplyPage() {
                   DAILY QUOTA
                 </span>
                 <span className="text-sm font-black text-blue-600 dark:text-blue-400">
-                  84/150
+                  {appliedCount}/{config.maxDailyApplications}
                 </span>
               </div>
 
               {/* Progress bar */}
               <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                <div className="h-full bg-blue-600 rounded-full w-[56%]" />
+                <div
+                  className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.round((appliedCount / config.maxDailyApplications) * 100))}%` }}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-1">
@@ -172,14 +194,14 @@ export default function AutoApplyPage() {
             <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0c0e17] p-6 space-y-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider">
-                  Salary & Filters
+                  Salary &amp; Filters
                 </h4>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-500 font-medium">Min Base Salary</span>
-                  <span className="font-bold text-blue-600 dark:text-blue-400">${salaryValue[0]}k</span>
+                  <span className="font-bold text-blue-600 dark:text-blue-400">${salaryValue[0]}k (20 LPA+)</span>
                 </div>
                 <Slider
                   value={salaryValue}
@@ -206,6 +228,59 @@ export default function AutoApplyPage() {
                       {t}
                     </button>
                   ))}
+                </div>
+              </div>
+            </Card>
+
+            {/* Box 5: SMART RULES ENGINE */}
+            <Card className="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950/20 to-[#0c0e17] p-6 space-y-3.5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal className="h-4 w-4 text-indigo-400" />
+                  <h4 className="text-xs font-extrabold text-white uppercase tracking-wider">
+                    SMART RULES ENGINE
+                  </h4>
+                </div>
+                <Badge className="bg-indigo-600 text-white text-[9.5px] font-extrabold px-2.5 py-0.5">
+                  ACTIVE RULES
+                </Badge>
+              </div>
+
+              <div className="space-y-2 text-xs font-sans">
+                {/* Rule 1: Salary */}
+                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-300 font-medium">Salary Floor</span>
+                  <span className="font-extrabold text-emerald-400">&gt; 20 LPA ($120k+)</span>
+                </div>
+
+                {/* Rule 2: Experience */}
+                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-300 font-medium">Experience Level</span>
+                  <span className="font-extrabold text-indigo-400">8 - 12 Years</span>
+                </div>
+
+                {/* Rule 3: Work Mode */}
+                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-300 font-medium">Work Mode</span>
+                  <span className="font-extrabold text-cyan-400">Remote Only</span>
+                </div>
+
+                {/* Rule 4: Skill Logic OR */}
+                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-300 font-medium">Frontend Stack</span>
+                  <span className="font-extrabold text-amber-400">React OR Next.js</span>
+                </div>
+
+                {/* Rule 5: Skill Logic Mandatory */}
+                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-300 font-medium">Backend Requirement</span>
+                  <span className="font-extrabold text-rose-400">Node.js (Mandatory)</span>
+                </div>
+
+                {/* Rule 6: Exclude Staffing */}
+                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-300 font-medium">Recruiter Exclusion</span>
+                  <span className="font-extrabold text-slate-300">Exclude Staffing Companies</span>
                 </div>
               </div>
             </Card>

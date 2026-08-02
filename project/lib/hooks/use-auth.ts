@@ -41,3 +41,23 @@ export function useUpdateUser() {
       apiRequest<User>(`/users/${id}`, { method: 'PATCH', body, auth: true }),
   });
 }
+
+export function useForgotPassword() {
+  return useMutation<{ success: boolean; message: string; resetUrl?: string }, ApiError, { email: string; captchaToken: string }>({
+    mutationFn: (body) =>
+      apiRequest<{ success: boolean; message: string; resetUrl?: string }>('/api/auth/forgot-password', {
+        method: 'POST',
+        body,
+      }),
+  });
+}
+
+export function useResetPassword() {
+  return useMutation<{ success: boolean; message: string }, ApiError, { token: string; email: string; newPassword: string }>({
+    mutationFn: (body) =>
+      apiRequest<{ success: boolean; message: string }>('/api/auth/reset-password', {
+        method: 'POST',
+        body,
+      }),
+  });
+}

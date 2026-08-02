@@ -48,7 +48,9 @@ export async function apiRequest<T>(
     if (token) finalHeaders.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_URL}${path}`, {
+  const requestUrl = path.startsWith('/api/') ? path : `${API_URL}${path}`;
+
+  const res = await fetch(requestUrl, {
     method,
     headers: finalHeaders,
     body:

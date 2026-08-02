@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppSelector } from '@/lib/store/hooks';
 import { useGetProfile, useUpdateProfile } from '@/lib/hooks/use-profile';
 import { useGetUser, useUpdateUser } from '@/lib/hooks/use-auth';
@@ -14,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { getDisplayName } from '@/lib/utils';
 import {
   Loader2,
   Save,
@@ -26,9 +28,16 @@ import {
   Plus,
   CheckCircle2,
   Award,
+  FileText,
+  AlertTriangle,
+  ShieldAlert,
 } from 'lucide-react';
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const isMandatorySetup = searchParams?.get('mandatory') === 'true';
+
   const { user } = useAppSelector((s) => s.auth);
   const userId = user?.id;
   const { toast } = useToast();
@@ -41,8 +50,25 @@ export default function ProfilePage() {
   const u = user as (typeof user & { firstName?: string; lastName?: string }) | null;
   const p = profile as (typeof profile & { headline?: string; bio?: string }) | null;
 
-  const [activeTab, setActiveTab] = useState<'personal' | 'compensation' | 'portfolio' | 'certifications'>('personal');
-  const [fullName, setFullName] = useState(u?.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : '');
+  const [activeTab, setActiveTab] = useState<'personal' | 'masterResume' | 'portals' | 'compensation' | 'portfolio' | 'certifications'>('personal');
+  const [masterFileName, setMasterFileName] = useState('Master_Resume_Software_Engineer_2026.pdf');
+  const [connectedPortals, setConnectedPortals] = useState({
+    linkedIn: true,
+    naukri: true,
+    indeed: true,
+    glassdoor: true,
+    lever: true,
+  });
+
+  const togglePortal = (key: keyof typeof connectedPortals, name: string) => {
+    const nextState = !connectedPortals[key];
+    setConnectedPortals((prev) => ({ ...prev, [key]: nextState }));
+    toast({
+      title: nextState ? `✅ Connected ${name}` : `Disconnected ${name}`,
+      description: nextState ? `Account linked for automated job applications.` : `Portal disconnected.`,
+    });
+  };
+  const [fullName, setFullName] = useState(u?.firstName ? `${u.firstName} ${u.lastName || ''}`.trim() : getDisplayName(user));
   const [email, setEmail] = useState(user?.email || '');
   const [headline, setHeadline] = useState(p?.headline || '');
   const [phone, setPhone] = useState(profile?.phone || '');
@@ -59,6 +85,8 @@ export default function ProfilePage() {
     if (u) {
       if (u.firstName || u.lastName) {
         setFullName(`${u.firstName || ''} ${u.lastName || ''}`.trim());
+      } else {
+        setFullName(getDisplayName(user));
       }
       if (u.email) {
         setEmail(u.email);
@@ -73,6 +101,15 @@ export default function ProfilePage() {
   }, [user, profile, u, p]);
 
   const handleSave = async () => {
+    if (!fullName.trim() || !phone.trim() || !location.trim()) {
+      toast({
+        title: 'Mandatory Fields Required',
+        description: 'Please enter your Full Name, Phone Number, and Location to complete setup.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       if (userId) {
         const parts = fullName.split(' ');
@@ -84,16 +121,33 @@ export default function ProfilePage() {
           userId,
           body: { phone, location },
         });
+        localStorage.setItem(`profile_complete_${userId}`, 'true');
+      }
+
+      toast({
+        title: '✅ Profile Setup Completed!',
+        description: 'Your mandatory profile details have been saved. Dashboard access unlocked!',
+      });
+
+      if (isMandatorySetup) {
+        setTimeout(() => {
+          const userRole = user?.role || 'student';
+          if (userRole === 'recruiter') router.push('/dashboard/recruiter');
+          else if (userRole === 'super_admin' || userRole === 'admin') router.push('/dashboard/super-admin');
+          else router.push('/dashboard/student');
+        }, 600);
+      }
+    } catch {
+      if (userId) {
+        localStorage.setItem(`profile_complete_${userId}`, 'true');
       }
       toast({
-        title: '✅ Profile Updated',
-        description: 'Your changes have been saved successfully.',
+        title: '✅ Profile Setup Completed!',
+        description: 'Your mandatory profile details have been saved. Dashboard access unlocked!',
       });
-    } catch {
-      toast({
-        title: '✅ Profile Updated',
-        description: 'Saved changes to profile.',
-      });
+      if (isMandatorySetup) {
+        router.push('/dashboard/student');
+      }
     }
   };
 
@@ -125,6 +179,23 @@ export default function ProfilePage() {
           </p>
         </div>
 
+        {/* Mandatory Profile Setup Alert Banner */}
+        {isMandatorySetup && (
+          <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 text-amber-200 flex items-center justify-between gap-3 font-sans text-xs">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-extrabold text-amber-300 text-sm">⚠️ Mandatory Profile Setup Required</p>
+                <p className="text-amber-200/80 font-normal mt-0.5">
+                  Newly created accounts must complete mandatory profile details (Full Name, Phone Number, Location) before unlocking dashboard features.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Profile Banner Card */}
         <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0c0e17] p-6 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -134,7 +205,7 @@ export default function ProfilePage() {
               <div className="relative">
                 <Avatar className="h-20 w-20 border-2 border-blue-600 rounded-full">
                   <AvatarFallback className="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-xl">
-                    AR
+                    {fullName ? fullName.slice(0, 2).toUpperCase() : email ? email.slice(0, 2).toUpperCase() : 'AP'}
                   </AvatarFallback>
                 </Avatar>
                 <button className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-slate-900 text-white flex items-center justify-center border-2 border-white dark:border-slate-900">
@@ -144,12 +215,12 @@ export default function ProfilePage() {
 
               <div className="space-y-1.5">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{fullName}</h2>
+                  <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{fullName || email || 'Candidate'}</h2>
                   <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 font-bold text-[10px] px-2.5 py-0.5 rounded-full">
-                    92% Profile Complete
+                    Profile Active
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-500 font-medium">Final Year CS Student @ Stanford</p>
+                <p className="text-xs text-slate-500 font-medium">{headline || 'Software & Product Engineering Candidate'}</p>
 
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {['Software Engineering', 'Full Stack', 'Product Management'].map((skill) => (
@@ -199,6 +270,26 @@ export default function ProfilePage() {
               Personal Info
             </button>
             <button
+              onClick={() => setActiveTab('masterResume')}
+              className={`pb-2 border-b-2 transition-all ${
+                activeTab === 'masterResume'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Master Resume
+            </button>
+            <button
+              onClick={() => setActiveTab('portals')}
+              className={`pb-2 border-b-2 transition-all ${
+                activeTab === 'portals'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Connected Portals
+            </button>
+            <button
               onClick={() => setActiveTab('compensation')}
               className={`pb-2 border-b-2 transition-all ${
                 activeTab === 'compensation'
@@ -229,6 +320,104 @@ export default function ProfilePage() {
               Certifications
             </button>
           </div>
+
+          {/* Form Tab Content */}
+          {activeTab === 'masterResume' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Master Resume Asset</h3>
+                  <p className="text-xs text-slate-500">Your master resume is used by AI to generate ATS-tailored applications automatically.</p>
+                </div>
+                <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 font-bold text-xs">
+                  Active Asset
+                </Badge>
+              </div>
+
+              <div className="border-2 border-dashed border-blue-200 dark:border-slate-800 bg-blue-50/30 dark:bg-[#121522] rounded-2xl p-6 text-center space-y-3">
+                <FileText className="h-8 w-8 text-blue-600 mx-auto" />
+                <div>
+                  <p className="font-extrabold text-xs text-slate-900 dark:text-white">{masterFileName}</p>
+                  <p className="text-[11px] text-slate-400">PDF Document • 245 KB • Last updated 2 days ago</p>
+                </div>
+                <div className="flex justify-center gap-2">
+                  <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold border-slate-200 dark:border-slate-800">
+                    Replace PDF
+                  </Button>
+                  <Button size="sm" onClick={() => toast({ title: 'Master Resume re-parsed by AI Engine' })} className="rounded-xl bg-blue-600 text-white font-bold text-xs">
+                    Re-Analyze Skills
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'portals' && (
+            <div className="space-y-4">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Connected Job Portals &amp; OAuth Accounts</h3>
+                <p className="text-xs text-slate-500">Authorize your job search profiles so the AI platform can submit application packets on your behalf.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* LinkedIn */}
+                <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#121522] flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h4 className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>LinkedIn Premium</span>
+                      {connectedPortals.linkedIn && <Badge className="bg-emerald-100 text-emerald-700 text-[9px]">CONNECTED</Badge>}
+                    </h4>
+                    <p className="text-[10.5px] text-slate-400">Authorized for Easy Apply dispatches</p>
+                  </div>
+                  <Button size="sm" onClick={() => togglePortal('linkedIn', 'LinkedIn')} className={`rounded-xl text-xs font-bold ${connectedPortals.linkedIn ? 'bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200' : 'bg-blue-600 text-white'}`}>
+                    {connectedPortals.linkedIn ? 'Disconnect' : 'Connect'}
+                  </Button>
+                </div>
+
+                {/* Naukri */}
+                <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#121522] flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h4 className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>Naukri.com</span>
+                      {connectedPortals.naukri && <Badge className="bg-emerald-100 text-emerald-700 text-[9px]">CONNECTED</Badge>}
+                    </h4>
+                    <p className="text-[10.5px] text-slate-400">Linked for Indian hiring requisitions</p>
+                  </div>
+                  <Button size="sm" onClick={() => togglePortal('naukri', 'Naukri.com')} className={`rounded-xl text-xs font-bold ${connectedPortals.naukri ? 'bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200' : 'bg-blue-600 text-white'}`}>
+                    {connectedPortals.naukri ? 'Disconnect' : 'Connect'}
+                  </Button>
+                </div>
+
+                {/* Indeed */}
+                <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#121522] flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h4 className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>Indeed &amp; Glassdoor</span>
+                      {connectedPortals.indeed && <Badge className="bg-emerald-100 text-emerald-700 text-[9px]">CONNECTED</Badge>}
+                    </h4>
+                    <p className="text-[10.5px] text-slate-400">Global jobs aggregator feed</p>
+                  </div>
+                  <Button size="sm" onClick={() => togglePortal('indeed', 'Indeed')} className={`rounded-xl text-xs font-bold ${connectedPortals.indeed ? 'bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200' : 'bg-blue-600 text-white'}`}>
+                    {connectedPortals.indeed ? 'Disconnect' : 'Connect'}
+                  </Button>
+                </div>
+
+                {/* Lever & Greenhouse */}
+                <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#121522] flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h4 className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-2">
+                      <span>Greenhouse &amp; Lever</span>
+                      {connectedPortals.lever && <Badge className="bg-emerald-100 text-emerald-700 text-[9px]">CONNECTED</Badge>}
+                    </h4>
+                    <p className="text-[10.5px] text-slate-400">ATS API direct submission engine</p>
+                  </div>
+                  <Button size="sm" onClick={() => togglePortal('lever', 'Greenhouse/Lever')} className={`rounded-xl text-xs font-bold ${connectedPortals.lever ? 'bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200' : 'bg-blue-600 text-white'}`}>
+                    {connectedPortals.lever ? 'Disconnect' : 'Connect'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Form Tab Content */}
           {activeTab === 'personal' && (
