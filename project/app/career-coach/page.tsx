@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PageShell } from '@/components/page-shell';
+import { PageShell } from '@/components/layout/page-shell';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,7 @@ import {
   Layers,
   Award,
 } from 'lucide-react';
-import { useAppSelector } from '@/lib/store/hooks';
+import { useAppSelector } from '@/store/hooks';
 import Link from 'next/link';
 
 export default function CareerCoachPage() {

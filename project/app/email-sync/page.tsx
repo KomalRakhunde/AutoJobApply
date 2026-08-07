@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PageShell } from '@/components/page-shell';
+import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,14 +29,14 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAppSelector } from '@/lib/store/hooks';
+import { useAppSelector } from '@/store/hooks';
 import {
   useSyncedEmails,
   useSyncInbox,
   useAddSyncedEmail,
   useDeleteSyncedEmail,
-} from '@/lib/hooks/use-features';
-import type { SyncedEmail, EmailCategory } from '@/lib/types';
+} from '@/hooks/use-features';
+import type { SyncedEmail, EmailCategory } from '@/types/types';
 
 export default function EmailSyncPage() {
   const { toast } = useToast();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { PageShell } from '@/components/page-shell';
+import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,8 +25,8 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useCreateApplication, useJobs } from '@/lib/hooks/use-features';
-import type { AutoApplyConfig, AutoApplyLog } from '@/lib/types';
+import { useCreateApplication, useJobs } from '@/hooks/use-features';
+import type { AutoApplyConfig, AutoApplyLog } from '@/types/types';
 
 export default function AutoApplyPage() {
   const { toast } = useToast();

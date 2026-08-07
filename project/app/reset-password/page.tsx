@@ -18,8 +18,8 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useResetPassword } from '@/lib/hooks/use-auth';
-import { PasswordMeter, isPasswordValid } from '@/components/password-meter';
+import { useResetPassword } from '@/hooks/use-auth';
+import { PasswordMeter, isPasswordValid } from '@/components/common/password-meter';
 
 export default function ResetPasswordPage() {
   const router = useRouter();

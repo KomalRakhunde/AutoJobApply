@@ -21,11 +21,11 @@ import {
   Zap,
   ArrowRight,
 } from 'lucide-react';
-import { useLogin } from '@/lib/hooks/use-auth';
-import { useAppDispatch } from '@/lib/store/hooks';
-import { setCredentials } from '@/lib/store/auth-slice';
+import { useLogin } from '@/hooks/use-auth';
+import { useAppDispatch } from '@/store/hooks';
+import { setCredentials } from '@/store/auth-slice';
 import { useToast } from '@/hooks/use-toast';
-import type { UserRole } from '@/lib/types';
+import type { UserRole } from '@/types/types';
 
 const ROLES_LIST: { id: UserRole; label: string }[] = [
   { id: 'student', label: 'Student' },
@@ -88,7 +88,7 @@ export default function LoginPage() {
       });
 
       const userRole = (res.user?.role || selectedRole).toLowerCase() as UserRole;
-      const token = res.accessToken || `auth-token-${Date.now()}`;
+      const token = res.accessToken || res.token || 'session-' + Date.now();
 
       document.cookie = `applyai_token=${token}; path=/; max-age=604800; SameSite=Lax`;
       document.cookie = `applyai_role=${userRole}; path=/; max-age=604800; SameSite=Lax`;
@@ -117,18 +117,37 @@ export default function LoginPage() {
       router.push(targetPath);
       return;
     } catch (err: any) {
-      const errorMsg =
-        (typeof err?.message === 'string' && err.message) ||
-        (err?.data && typeof err.data === 'object' && err.data.message) ||
-        'Invalid email, password, or role selection.';
-      
-      setError(errorMsg);
-      toast({
-        title: 'Authentication Failed (401)',
-        description: `${errorMsg} If you don't have an account yet, please Register first.`,
-        variant: 'destructive',
-      });
-      return;
+      if (err?.status === 401 || err?.status === 403) {
+        const errorMsg = 'Invalid email, password, or role selection.';
+        setError(errorMsg);
+        toast({
+          title: 'Authentication Failed (401)',
+          description: `${errorMsg} If you don't have an account yet, please Register first.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const errMsg = err?.data?.message || err?.message || '';
+      const isNetworkError =
+        !err?.status ||
+        errMsg.toLowerCase().includes('failed to fetch') ||
+        errMsg.toLowerCase().includes('network') ||
+        err?.status === 404 ||
+        err?.status === 502 ||
+        err?.status === 503;
+
+      if (!isNetworkError) {
+        setError(errMsg || 'Authentication failed');
+        toast({
+          title: 'Authentication Failed',
+          description: errMsg || 'Authentication failed',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      console.warn('Backend unavailable, proceeding with demo login.');
     }
 
     // Demo Mode Fallback

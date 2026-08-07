@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAppSelector } from '@/lib/store/hooks';
-import { useGetProfile, useUpdateProfile } from '@/lib/hooks/use-profile';
-import { useGetUser, useUpdateUser } from '@/lib/hooks/use-auth';
-import { PageShell } from '@/components/page-shell';
+import { useAppSelector } from '@/store/hooks';
+import { useGetProfile, useUpdateProfile } from '@/hooks/use-profile';
+import { useGetUser, useUpdateUser } from '@/hooks/use-auth';
+import { PageShell } from '@/components/layout/page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { getDisplayName } from '@/lib/utils';
+import { getDisplayName } from '@/utils/utils';
 import {
   Loader2,
   Save,

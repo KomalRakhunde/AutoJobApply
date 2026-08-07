@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
+import { envConfig } from '@/config/env';
 
 // In-memory rate limiting store (max 3 requests per 15 minutes per email/IP)
 const rateLimitMap = new Map<string, { count: number; expiresAt: number }>();
@@ -59,11 +61,12 @@ export async function POST(request: NextRequest) {
 
     // Generate 15-minute expiration timestamp and JWT reset token
     const expiresAt = Date.now() + 15 * 60 * 1000;
+    const nonce = randomBytes(16).toString('hex');
     const tokenPayload = Buffer.from(
-      JSON.stringify({ email: cleanEmail, expiresAt, nonce: Math.random().toString(36).substring(2) })
+      JSON.stringify({ email: cleanEmail, expiresAt, nonce })
     ).toString('base64url');
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+    const baseUrl = envConfig.NEXT_PUBLIC_APP_URL;
     const resetUrl = `${baseUrl}/reset-password?token=${tokenPayload}&email=${encodeURIComponent(cleanEmail)}`;
 
     // Log Audit Event to console / DB
@@ -72,7 +75,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Password reset link has been dispatched to your email address.',
-      resetUrl,
     });
   } catch (error: any) {
     return NextResponse.json(

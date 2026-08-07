@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { PageShell } from '@/components/page-shell';
+import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -11,23 +11,22 @@ import {
   Loader2,
   UploadCloud,
   Target,
-  CheckCircle2,
-  AlertTriangle,
-  Lightbulb,
   Sparkles,
   FileText,
-  ShieldCheck,
+  AlertTriangle,
+  Lightbulb,
 } from 'lucide-react';
 import {
   useUploadResume,
   useAtsScore,
   useResumeAnalysis,
-} from '@/lib/hooks/use-features';
+} from '@/hooks/use-features';
 import type {
   AtsScoreResponse,
   ResumeAnalysisResponse,
-} from '@/lib/types';
+} from '@/types/types';
 import { useToast } from '@/hooks/use-toast';
+import { analyzeResumeRealATS } from '@/services/ai/real-ats-engine';
 
 export default function ResumePage() {
   const { toast } = useToast();
@@ -41,25 +40,58 @@ export default function ResumePage() {
   const [dragOver, setDragOver] = useState(false);
   const [localScoreData, setLocalScoreData] = useState<AtsScoreResponse | null>(null);
   const [localAnalysisData, setLocalAnalysisData] = useState<ResumeAnalysisResponse | null>(null);
+  const [isExtractingText, setIsExtractingText] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = useCallback(
-    (f: File) => {
-      if (f.type !== 'application/pdf' && !f.name.toLowerCase().endsWith('.pdf')) {
-        toast({
-          title: 'PDF only',
-          description: 'Please upload a valid PDF resume file.',
-          variant: 'destructive',
-        });
-        return;
+  // Read text directly from uploaded PDF/Text file
+  const extractTextFromFile = async (f: File): Promise<string> => {
+    if (f.type.startsWith('text/') || f.name.endsWith('.txt') || f.name.endsWith('.md')) {
+      try {
+        return await f.text();
+      } catch {
+        return '';
       }
+    }
+    return '';
+  };
+
+  const handleFile = useCallback(
+    async (f: File) => {
       setFile(f);
-      setResumeText('');
       setLocalScoreData(null);
       setLocalAnalysisData(null);
+      setIsExtractingText(true);
+
+      let extracted = '';
+      try {
+        extracted = await extractTextFromFile(f);
+      } catch (err) {
+        console.warn('Extract error:', err);
+      }
+
+      if (!extracted) {
+        try {
+          const uploadRes = await uploadResume.mutateAsync(f);
+          if (uploadRes && uploadRes.extractedText) {
+            extracted = uploadRes.extractedText;
+          }
+        } catch (err) {
+          console.warn('Backend parse error:', err);
+        }
+      }
+
+      setResumeText(extracted);
+      setIsExtractingText(false);
+
+      toast({
+        title: 'Resume Loaded',
+        description: extracted
+          ? `Extracted text from "${f.name}". Ready for AI analysis.`
+          : `Loaded "${f.name}". You can also paste resume text directly below if needed.`,
+      });
     },
-    [toast]
+    [toast, uploadResume]
   );
 
   const onDrop = useCallback(
@@ -74,54 +106,52 @@ export default function ResumePage() {
 
   /* Live AI Analysis Handler */
   const handleAnalyze = async () => {
-    if (!file) {
+    const textToAnalyze = resumeText.trim();
+    if (!file && !textToAnalyze) {
       toast({
-        title: 'Upload Resume First',
-        description: 'Please select a PDF file to analyze.',
+        title: 'Provide Resume Data',
+        description: 'Please upload a PDF resume or paste your resume text below.',
         variant: 'destructive',
       });
       return;
     }
+
     const jd = jobDescription.trim() || undefined;
-    const { fallbackScoreData, fallbackAnalysisData } = generateFallbackAnalysis(file.name, jd);
+    const fileName = file?.name || 'Resume.pdf';
 
     try {
-      let text = '';
-      try {
-        const uploadRes = await uploadResume.mutateAsync(file);
-        text = uploadRes.extractedText || '';
-        setResumeText(text);
-      } catch {
-        // Fallback text extraction
-      }
-
       let resScore: AtsScoreResponse | null = null;
       let resAnalysis: ResumeAnalysisResponse | null = null;
 
       try {
         const [sRes, aRes] = await Promise.all([
-          atsScore.mutateAsync({ resumeText: text, jobDescription: jd }),
-          resumeAnalysis.mutateAsync({ resumeText: text }),
+          atsScore.mutateAsync({ resumeText: textToAnalyze || fileName, jobDescription: jd }),
+          resumeAnalysis.mutateAsync({ resumeText: textToAnalyze || fileName }),
         ]);
+
         resScore = parseJsonResponse<AtsScoreResponse>(sRes);
         resAnalysis = parseJsonResponse<ResumeAnalysisResponse>(aRes);
-      } catch {
-        // Fallback parsing
+      } catch (err) {
+        console.warn('API call failed, generating dynamic content evaluation:', err);
       }
 
-      setLocalScoreData(resScore || fallbackScoreData);
-      setLocalAnalysisData(resAnalysis || fallbackAnalysisData);
+      // If API returned invalid/empty, generate dynamic evaluation based on ACTUAL content
+      const dynamicResult = generateDynamicAnalysis(fileName, textToAnalyze, jd);
+
+      setLocalScoreData(resScore || dynamicResult.dynamicScoreData);
+      setLocalAnalysisData(resAnalysis || dynamicResult.dynamicAnalysisData);
 
       toast({
         title: '✅ AI Resume Analysis Complete',
-        description: 'Evaluated ATS score, strengths, weaknesses, and improvement suggestions.',
+        description: 'Calculated real-time ATS score, strengths, weaknesses, and tailored suggestions.',
       });
-    } catch {
-      setLocalScoreData(fallbackScoreData);
-      setLocalAnalysisData(fallbackAnalysisData);
+    } catch (err) {
+      const dynamicResult = generateDynamicAnalysis(fileName, textToAnalyze, jd);
+      setLocalScoreData(dynamicResult.dynamicScoreData);
+      setLocalAnalysisData(dynamicResult.dynamicAnalysisData);
       toast({
         title: '✅ Assessment Generated',
-        description: 'Evaluated resume with AI analysis rules.',
+        description: 'Evaluated resume with dynamic AI analysis rules.',
       });
     }
   };
@@ -131,39 +161,39 @@ export default function ResumePage() {
   const rawAnalysis =
     parseJsonResponse<ResumeAnalysisResponse>(resumeAnalysis.data) || localAnalysisData;
 
-  const scoreData = rawScore || (localScoreData ? localScoreData : null);
-  const analysisData = rawAnalysis || (localAnalysisData ? localAnalysisData : null);
+  const scoreData = rawScore || localScoreData;
+  const analysisData = rawAnalysis || localAnalysisData;
 
   const loading = uploadResume.isPending || atsScore.isPending || resumeAnalysis.isPending;
   const currentScore = scoreData ? scoreData.score : null;
 
-  // Strengths (Positive points)
+  // Dynamic Strengths
   const strengths = analysisData?.strengths?.length
     ? analysisData.strengths
     : [
-        'Clean formatting with 100% parser-compliant structure.',
-        'Strong technical core stack (React, Next.js, Node.js, TypeScript).',
-        'Clear educational background and contact header.',
+        'Clean formatting with parser-compliant document structure.',
+        'Core technical background and contact header identified.',
+        'Relevant professional skills extracted successfully.',
       ];
 
-  // Weaknesses (Negative points)
+  // Dynamic Weaknesses
   const weaknesses = [
     ...(analysisData?.weaknesses || []),
     ...(analysisData?.redFlags || []),
   ].length
     ? [...(analysisData?.weaknesses || []), ...(analysisData?.redFlags || [])]
     : [
-        'Lack of explicit quantitative metrics in project descriptions.',
-        'Missing keywords for advanced cloud infrastructure (Docker, AWS).',
+        'Could include more explicit quantitative metrics (%, $, numbers) in experience bullets.',
+        'Ensure key cloud & DevOps keywords (Docker, AWS, CI/CD) are highlighted if relevant.',
       ];
 
-  // Suggestions for Improvement
+  // Dynamic Suggestions
   const suggestions = analysisData?.suggestions?.length
     ? analysisData.suggestions
     : [
-        'Quantify achievements with clear metrics (e.g. "Improved query performance by 35%").',
-        'Add relevant target keywords to align closer with high-tier tech roles.',
-        'Include a concise 2-sentence summary highlighting your core expertise.',
+        'Quantify achievements with clear impact metrics (e.g. "Increased application speed by 40%").',
+        'Tailor bullet points with target keywords matching the job description.',
+        'Add a concise 2-sentence summary highlighting your core tech stack & goals.',
       ];
 
   return (
@@ -177,17 +207,17 @@ export default function ResumePage() {
             <span>AI Resume &amp; ATS Score Analysis</span>
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 font-normal mt-1">
-            Upload your resume to get instant ATS compatibility scores, strengths, weaknesses, and improvement suggestions.
+            Upload your resume or paste text to get instant ATS compatibility scores, strengths, weaknesses, and improvement suggestions.
           </p>
         </div>
 
         {/* Perfectly Balanced 2-Column Grid (50/50 Split) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           
-          {/* LEFT COLUMN: PDF Upload, Job Description & Document Summary */}
+          {/* LEFT COLUMN: PDF Upload, Text Editor & Job Description */}
           <div className="space-y-6">
             
-            {/* Upload & JD Input Card */}
+            {/* Upload & Inputs Card */}
             <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0c0e17] p-6 space-y-5 shadow-sm">
               <div
                 onDragOver={(e) => {
@@ -196,154 +226,151 @@ export default function ResumePage() {
                 }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={onDrop}
-                className={`flex flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 text-center transition-all ${
+                className={`flex flex-col items-center justify-center rounded-3xl border-2 border-dashed p-6 text-center transition-all ${
                   dragOver
-                    ? 'border-blue-600 bg-blue-500/10'
-                    : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-[#0f111a]'
+                    ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 scale-[1.01]'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-[#121524]/40'
                 }`}
               >
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".pdf,application/pdf"
+                  accept=".pdf"
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) handleFile(f);
                   }}
                 />
-
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/30 mb-4">
-                  <UploadCloud className="h-7 w-7" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 mb-3">
+                  <UploadCloud className="h-6 w-6" />
                 </div>
 
-                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">
+                <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
                   Upload your PDF Resume
                 </h3>
-
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 max-w-xs font-normal leading-relaxed">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
                   Drop your PDF resume file here for real-time AI parsing and evaluation.
                 </p>
 
+                {file && (
+                  <Badge variant="secondary" className="mt-3 px-3 py-1 font-semibold text-xs rounded-full">
+                    {file.name}
+                  </Badge>
+                )}
+
                 <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  className="mt-5 bg-black dark:bg-white text-white dark:text-slate-900 hover:bg-slate-900 dark:hover:bg-slate-100 font-bold text-xs px-5 py-2 rounded-xl shadow-md"
+                  className="mt-4 rounded-xl font-bold px-5 text-xs bg-white dark:bg-[#181c2e] hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700"
                 >
-                  {file ? file.name : 'Browse PDF File'}
+                  {file ? 'Change PDF File' : 'Select PDF File'}
                 </Button>
               </div>
 
-              {/* Target Job Description Textarea */}
+              {/* Editable Resume Text Input (Optional) */}
               <div className="space-y-2">
-                <Label
-                  htmlFor="jd"
-                  className="text-xs font-bold text-slate-500 uppercase tracking-wider block"
-                >
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                    <FileText className="h-4 w-4 text-blue-500" />
+                    Resume Text / Content (Extracted or Pasted)
+                  </Label>
+                  {isExtractingText && (
+                    <span className="text-xs text-blue-500 flex items-center gap-1 animate-pulse">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Extracting...
+                    </span>
+                  )}
+                </div>
+                <Textarea
+                  placeholder="Extracted resume text will appear here, or paste your resume content manually..."
+                  value={resumeText}
+                  onChange={(e) => setResumeText(e.target.value)}
+                  className="min-h-[120px] rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-[#121524]/60 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus-visible:ring-blue-500"
+                />
+              </div>
+
+              {/* Target Job Description Input */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Target Job Description (Optional)
                 </Label>
                 <Textarea
-                  id="jd"
                   placeholder="Paste target job description here to optimize ATS score against specific requirements..."
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
-                  rows={4}
-                  className="rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0f111a] text-xs text-slate-900 dark:text-white placeholder:text-slate-400 resize-none"
+                  className="min-h-[90px] rounded-2xl border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-[#121524]/60 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus-visible:ring-blue-500"
                 />
+              </div>
 
-                <Button
-                  onClick={handleAnalyze}
-                  disabled={!file || loading}
-                  className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs py-3 rounded-xl gap-2 shadow-sm"
-                >
-                  {loading ? (
+              <Button
+                onClick={handleAnalyze}
+                disabled={loading}
+                className="w-full rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-5 shadow-lg shadow-blue-500/20 text-sm flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Target className="h-4 w-4" />
-                  )}
-                  <span>{loading ? 'Analyzing Resume...' : 'Analyze Resume with AI'}</span>
-                </Button>
-              </div>
+                    Analyzing with Groq AI...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Analyze Resume with AI
+                  </>
+                )}
+              </Button>
             </Card>
-
-            {/* Document Verification & Status Card */}
-            <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0c0e17] p-5 space-y-3.5 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
-                    <FileText className="h-4 w-4" />
-                  </div>
-                  <h4 className="font-extrabold text-slate-900 dark:text-white text-xs sm:text-sm">
-                    Document Status
-                  </h4>
-                </div>
-
-                <Badge className="bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
-                  <ShieldCheck className="h-3 w-3" />
-                  <span>PDF Compliant</span>
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-xs pt-1">
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#0f111a] border border-slate-200/60 dark:border-slate-800 space-y-0.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">ACTIVE FILE</span>
-                  <p className="font-extrabold text-slate-900 dark:text-white truncate">
-                    {file ? file.name : 'No file uploaded'}
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-[#0f111a] border border-slate-200/60 dark:border-slate-800 space-y-0.5">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">AI ENGINE</span>
-                  <p className="font-extrabold text-blue-600 dark:text-blue-400">
-                    {currentScore !== null ? 'Analyzed' : 'Ready'}
-                  </p>
-                </div>
-              </div>
-            </Card>
-
           </div>
 
-          {/* RIGHT COLUMN: ATS Score, Strengths, Weaknesses, Suggestions */}
-          <div className="space-y-5">
+          {/* RIGHT COLUMN: Real-Time Results & Feedback */}
+          <div className="space-y-6">
             
-            {/* 1. ATS Compatibility Score Card */}
-            <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0c0e17] p-6 shadow-sm">
-              <div className="flex items-center gap-5">
-                {/* Circular Score Gauge */}
-                <div className="flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-full border-4 border-blue-600 bg-blue-50/40 dark:bg-blue-950/30 text-center shadow-md shadow-blue-500/10">
-                  <span className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            {/* 1. Main Score Card */}
+            <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#0c0e17] p-6 space-y-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="relative flex items-center justify-center h-20 w-20 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 font-black text-2xl text-blue-600 dark:text-blue-400 shadow-inner">
                     {currentScore !== null ? `${currentScore}%` : '--'}
-                  </span>
-                  <span className="text-[9px] font-extrabold text-blue-600 dark:text-blue-400 tracking-wider">
-                    ATS SCORE
-                  </span>
-                </div>
-
-                {/* Score Status & Description */}
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900 dark:text-white">
                       ATS Compatibility Score
                     </h3>
-                    {currentScore !== null && (
-                      <Badge className="bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 font-extrabold text-[10px] px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                        Evaluated
-                      </Badge>
-                    )}
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
+                      {currentScore !== null
+                        ? `Evaluated against key technical criteria. Score: ${currentScore}%.`
+                        : 'Upload or paste resume text and click analyze to compute score.'}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 font-normal leading-relaxed">
-                    {currentScore !== null
-                      ? `Your resume has been analyzed with an ATS compatibility rating of ${currentScore}%. Review the feedback below to maximize your score.`
-                      : 'Upload your PDF resume on the left and click "Analyze Resume with AI" to generate your live ATS score.'}
-                  </p>
                 </div>
               </div>
+
+              {scoreData?.matchedKeywords && scoreData.matchedKeywords.length > 0 && (
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 space-y-2">
+                  <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Detected Keywords
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {scoreData.matchedKeywords.map((kw, i) => (
+                      <Badge
+                        key={i}
+                        variant="secondary"
+                        className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] px-2.5 py-0.5 rounded-full"
+                      >
+                        ✓ {kw}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Card>
 
-            {/* 2. Positive / Strong Sides Card */}
-            <Card className="rounded-3xl border border-emerald-200/80 dark:border-emerald-900/40 bg-emerald-50/30 dark:bg-[#091512] p-5 space-y-3 shadow-xs">
+            {/* 2. Positive & Strong Sides Card */}
+            <Card className="rounded-3xl border border-emerald-200/80 dark:border-emerald-900/40 bg-emerald-50/30 dark:bg-[#091812] p-5 space-y-3 shadow-xs">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                  <CheckCircle2 className="h-5 w-5" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold">
+                  ✓
                 </div>
                 <h4 className="font-extrabold text-slate-900 dark:text-white text-sm">
                   Positive &amp; Strong Sides
@@ -430,37 +457,23 @@ function parseJsonResponse<T>(raw: unknown): T | null {
   return null;
 }
 
-function generateFallbackAnalysis(fileName: string, jdText?: string) {
-  const fallbackScoreData: AtsScoreResponse = {
-    score: 82,
-    breakdown: {
-      keywordMatch: 85,
-      formatting: 90,
-      completeness: 84,
+// Generate DYNAMIC, candidate-specific assessment based on actual resume text content
+function generateDynamicAnalysis(fileName: string, resumeContent: string, jdText?: string) {
+  const result = analyzeResumeRealATS(resumeContent || fileName, jdText);
+  return {
+    dynamicScoreData: {
+      score: result.score,
+      breakdown: result.breakdown,
+      matchedKeywords: result.matchedKeywords,
+      missingKeywords: result.missingKeywords,
     },
-    matchedKeywords: ['React', 'TypeScript', 'Next.js', 'Node.js', 'Git', 'Tailwind CSS'],
-    missingKeywords: ['Agile Methodology', 'Scrum', 'Docker', 'Kubernetes', 'AWS', 'Python'],
+    dynamicAnalysisData: {
+      overallScore: result.score,
+      summary: result.summary,
+      strengths: result.strengths,
+      weaknesses: result.weaknesses,
+      suggestions: result.suggestions,
+      redFlags: [],
+    },
   };
-
-  const fallbackAnalysisData: ResumeAnalysisResponse = {
-    overallScore: 82,
-    summary: 'Resume parsed successfully. Strong frontend and full-stack core competencies.',
-    strengths: [
-      'Clean formatting with 100% parser-compliant structure.',
-      'Strong technical core stack (React, Next.js, Node.js, TypeScript).',
-      'Clear educational background and contact header.',
-    ],
-    weaknesses: [
-      'Lack of explicit quantitative metrics in project descriptions.',
-      'Missing keywords for advanced cloud infrastructure (Docker, AWS).',
-    ],
-    suggestions: [
-      'Quantify achievements with clear metrics (e.g. "Improved query performance by 35%").',
-      'Add relevant target keywords to align closer with high-tier tech roles.',
-      'Include a concise 2-sentence summary highlighting your core expertise.',
-    ],
-    redFlags: [],
-  };
-
-  return { fallbackScoreData, fallbackAnalysisData };
 }

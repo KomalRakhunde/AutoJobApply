@@ -24,7 +24,7 @@ import {
   startInterviewSession,
   completeInterviewSession,
   PublicSessionResponse,
-} from '@/lib/interview-api';
+} from '@/services/interview/interview-api';
 
 interface Message {
   sender: 'ai' | 'candidate';

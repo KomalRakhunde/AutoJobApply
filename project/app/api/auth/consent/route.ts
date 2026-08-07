@@ -17,7 +17,8 @@ export async function POST(request: NextRequest) {
 
     // Call NestJS backend or update database
     try {
-      await fetch('http://localhost:3000/api/auth/consent', {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || new URL(request.url).origin;
+      await fetch(`${backendUrl}/api/auth/consent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
       // Demo backend fallback
     }
 
-    const token = request.cookies.get('applyai_token')?.value || `auth-token-${Date.now()}`;
+    const token = request.cookies.get('applyai_token')?.value || 'session-' + Date.now();
 
     const response = NextResponse.json({
       success: true,

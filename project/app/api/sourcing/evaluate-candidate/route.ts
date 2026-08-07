@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import type { InterviewScorecard } from '@/lib/types/sourcing';
+import type { InterviewScorecard } from '@/types/sourcing';
 
 const EvaluatePayloadSchema = z.object({
   candidateId: z.string({ required_error: 'Candidate ID is required' }),
@@ -30,12 +30,16 @@ export async function POST(req: Request) {
 
     const { candidateId, qnaTranscript, roundNumber } = parseResult.data;
 
-    const scoredTranscript = qnaTranscript.map((item) => ({
-      question: item.question,
-      answer: item.answer,
-      grade: 85 + Math.floor(Math.random() * 12),
-      feedback: 'Clear technical explanation with strong practical examples.',
-    }));
+    const scoredTranscript = qnaTranscript.map((item) => {
+      const charCount = item.answer.trim().length;
+      const computedGrade = Math.min(98, Math.max(70, 75 + Math.min(20, Math.floor(charCount / 15))));
+      return {
+        question: item.question,
+        answer: item.answer,
+        grade: computedGrade,
+        feedback: 'Clear technical explanation with strong practical examples.',
+      };
+    });
 
     const avgScore =
       scoredTranscript.length > 0

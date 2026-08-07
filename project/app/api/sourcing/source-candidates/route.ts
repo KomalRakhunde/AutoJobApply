@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import type { SourcedCandidate } from '@/lib/types/sourcing';
+import type { SourcedCandidate } from '@/types/sourcing';
 
 const SourcePayloadSchema = z.object({
   requisitionId: z.string().optional(),
@@ -66,8 +66,8 @@ function calculateAiMatchScore(candidateSkills: string[], requiredSkills: string
     requiredSkills.some((req) => req.toLowerCase() === s.toLowerCase())
   ).length;
   const baseRatio = matches / requiredSkills.length;
-  const score = Math.round(70 + baseRatio * 28 + Math.random() * 2);
-  return Math.min(score, 98);
+  const score = Math.min(98, Math.max(65, Math.round(68 + baseRatio * 30)));
+  return score;
 }
 
 export async function POST(req: Request) {

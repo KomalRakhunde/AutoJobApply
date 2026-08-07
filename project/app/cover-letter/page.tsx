@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { PageShell } from '@/components/page-shell';
+import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,11 +34,11 @@ import {
   useSavedCoverLetters,
   useDeleteCoverLetter,
   useCreateApplication,
-} from '@/lib/hooks/use-features';
-import type { CoverLetterStyle, Job } from '@/lib/types';
+} from '@/hooks/use-features';
+import type { CoverLetterStyle, Job } from '@/types/types';
 import { useToast } from '@/hooks/use-toast';
-import { useAppSelector } from '@/lib/store/hooks';
-import { getDisplayName, copyToClipboard } from '@/lib/utils';
+import { useAppSelector } from '@/store/hooks';
+import { getDisplayName, copyToClipboard } from '@/utils/utils';
 
 export default function CoverLetterPage() {
   const { toast } = useToast();

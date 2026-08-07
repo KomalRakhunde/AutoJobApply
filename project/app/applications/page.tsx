@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { PageShell } from '@/components/page-shell';
+import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,8 +35,8 @@ import {
   useUpdateApplication,
   useDeleteApplication,
   APPLICATION_STATUSES,
-} from '@/lib/hooks/use-features';
-import type { Application, ApplicationStatus } from '@/lib/types';
+} from '@/hooks/use-features';
+import type { Application, ApplicationStatus } from '@/types/types';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ApplicationsPage() {
@@ -51,7 +51,7 @@ export default function ApplicationsPage() {
   const grouped = useMemo(() => {
     const map = new Map<ApplicationStatus, Application[]>();
     APPLICATION_STATUSES.forEach((s) => map.set(s.value, []));
-    (applications ?? []).forEach((app: Application) => {
+    (Array.isArray(applications) ? applications : []).forEach((app: Application) => {
       const arr = map.get(app.status) ?? [];
       arr.push(app);
       map.set(app.status, arr);

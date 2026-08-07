@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PageShell } from '@/components/page-shell';
+import { PageShell } from '@/components/layout/page-shell';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +22,7 @@ import {
   Loader2,
   Sparkles,
 } from 'lucide-react';
-import { fetchLiveRecruiterPerformance, RecruiterPerformance } from '@/lib/admin-api';
+import { fetchLiveRecruiterPerformance, RecruiterPerformance } from '@/services/admin/admin-api';
 
 export default function AdminPerformancePage() {
   const { toast } = useToast();

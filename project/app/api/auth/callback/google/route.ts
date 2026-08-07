@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
   const lastName = 'Candidate';
 
   try {
-    const backendRes = await fetch('http://localhost:3000/api/auth/oauth', {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || new URL(request.url).origin;
+    const backendRes = await fetch(`${backendUrl}/api/auth/oauth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

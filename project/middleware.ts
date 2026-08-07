@@ -12,7 +12,7 @@ export function middleware(request: NextRequest) {
   const isDashboardRoute = pathname.startsWith('/dashboard');
   const isRecruiterRoute = pathname.startsWith('/dashboard/recruiter') || pathname.startsWith('/sourcing');
   const isAdminRoute = pathname.startsWith('/dashboard/admin') || pathname === '/admin';
-  const isSuperAdminRoute = pathname.startsWith('/dashboard/super-admin') || pathname === '/super-admin';
+  const isSuperAdminRoute = pathname.startsWith('/dashboard/super-admin') || pathname.startsWith('/dashboard/super_admin') || pathname === '/super-admin' || pathname === '/super_admin';
   const isStudentRoute = pathname.startsWith('/dashboard/student');
 
   // IF UNAUTHENTICATED & ATTEMPTING PROTECTED DASHBOARD

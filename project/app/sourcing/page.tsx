@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PageShell } from '@/components/page-shell';
+import { PageShell } from '@/components/layout/page-shell';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,8 +21,8 @@ import type {
   SourcedCandidate,
   PipelineRoundConfig,
   CandidatePipelineStatus,
-} from '@/lib/types/sourcing';
-import { RecruiterCandidate } from '@/lib/recruiter-api';
+} from '@/types/sourcing';
+import { RecruiterCandidate } from '@/services/recruiter/recruiter-api';
 import {
   Bot,
   PlusCircle,
@@ -53,13 +53,13 @@ import {
 } from 'lucide-react';
 
 // Import Recruiter Dialog Components
-import { BulkResumeUploadDialog } from '@/components/recruiter/bulk-resume-upload-dialog';
-import { AiJdGeneratorDialog } from '@/components/recruiter/ai-jd-generator-dialog';
-import { CandidateCompareDialog } from '@/components/recruiter/candidate-compare-dialog';
-import { CreateJobDialog } from '@/components/recruiter/create-job-dialog';
-import { OfferLetterDialog } from '@/components/recruiter/offer-letter-dialog';
-import { RecruiterCandidatesTable } from '@/components/recruiter/recruiter-candidates-table';
-import { ScheduleInterviewDialog } from '@/components/recruiter/schedule-interview-dialog';
+import { BulkResumeUploadDialog } from '@/features/recruiter/components/bulk-resume-upload-dialog';
+import { AiJdGeneratorDialog } from '@/features/recruiter/components/ai-jd-generator-dialog';
+import { CandidateCompareDialog } from '@/features/recruiter/components/candidate-compare-dialog';
+import { CreateJobDialog } from '@/features/recruiter/components/create-job-dialog';
+import { OfferLetterDialog } from '@/features/recruiter/components/offer-letter-dialog';
+import { RecruiterCandidatesTable } from '@/features/recruiter/components/recruiter-candidates-table';
+import { ScheduleInterviewDialog } from '@/features/recruiter/components/schedule-interview-dialog';
 
 const defaultRounds: PipelineRoundConfig[] = [
   { roundNumber: 1, name: 'AI Chat Screening', type: 'AI_CHAT_SCREENING', isAiHandled: true, minPassingScore: 75 },

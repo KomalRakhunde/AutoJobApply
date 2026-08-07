@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAppSelector } from '@/lib/store/hooks';
+import { useAppSelector } from '@/store/hooks';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ThemeToggle } from '@/components/theme-toggle';
+import { ThemeToggle } from '@/components/common/theme-toggle';
 import {
   ArrowRight,
   BarChart3,

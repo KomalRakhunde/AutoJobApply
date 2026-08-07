@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAppSelector } from '@/lib/store/hooks';
-import { PageShell } from '@/components/page-shell';
+import { useAppSelector } from '@/store/hooks';
+import { PageShell } from '@/components/layout/page-shell';
 import { Card } from '@/components/ui/card';
+import { envConfig } from '@/config/env';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -50,15 +51,15 @@ import {
   createAutomatedSelectionEmail,
   RecruiterJob,
   RecruiterCandidate,
-} from '@/lib/recruiter-api';
-import { triggerManualInterviewSession } from '@/lib/interview-api';
-import { CreateJobDialog } from '@/components/recruiter/create-job-dialog';
-import { BulkResumeUploadDialog } from '@/components/recruiter/bulk-resume-upload-dialog';
-import { RecruiterCandidatesTable } from '@/components/recruiter/recruiter-candidates-table';
-import { OfferLetterDialog } from '@/components/recruiter/offer-letter-dialog';
-import { CandidateCompareDialog } from '@/components/recruiter/candidate-compare-dialog';
-import { ScheduleInterviewDialog } from '@/components/recruiter/schedule-interview-dialog';
-import { AiJdGeneratorDialog } from '@/components/recruiter/ai-jd-generator-dialog';
+} from '@/services/recruiter/recruiter-api';
+import { triggerManualInterviewSession } from '@/services/interview/interview-api';
+import { CreateJobDialog } from '@/features/recruiter/components/create-job-dialog';
+import { BulkResumeUploadDialog } from '@/features/recruiter/components/bulk-resume-upload-dialog';
+import { RecruiterCandidatesTable } from '@/features/recruiter/components/recruiter-candidates-table';
+import { OfferLetterDialog } from '@/features/recruiter/components/offer-letter-dialog';
+import { CandidateCompareDialog } from '@/features/recruiter/components/candidate-compare-dialog';
+import { ScheduleInterviewDialog } from '@/features/recruiter/components/schedule-interview-dialog';
+import { AiJdGeneratorDialog } from '@/features/recruiter/components/ai-jd-generator-dialog';
 
 import { useSearchParams } from 'next/navigation';
 
@@ -903,7 +904,7 @@ export default function RecruiterDashboardPage() {
                 <div className="my-2 rounded-xl bg-white dark:bg-slate-800 p-3 border space-y-1">
                   <p className="font-bold text-indigo-600">AI Voice Interview Join Link:</p>
                   <p className="font-mono text-[11px] underline text-indigo-600 dark:text-indigo-400">
-                    {viewEmailCandidate.emailOutreach?.interviewLink || `http://localhost:3001/interview-prep?candidate=${viewEmailCandidate.id}`}
+                    {viewEmailCandidate.emailOutreach?.interviewLink || `${envConfig.NEXT_PUBLIC_APP_URL}/interview-prep?candidate=${viewEmailCandidate.id}`}
                   </p>
                   <p className="text-[10px] text-slate-400">Scheduled: {viewEmailCandidate.emailOutreach?.scheduledTime || 'Next Tuesday at 10:00 AM'}</p>
                 </div>

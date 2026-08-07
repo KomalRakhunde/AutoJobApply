@@ -3,6 +3,7 @@ import nodemailer from 'nodemailer';
 import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
+import { envConfig } from '@/config/env';
 
 const SendEmailSchema = z.object({
   candidateName: z.string().optional().default('Candidate'),
@@ -11,7 +12,7 @@ const SendEmailSchema = z.object({
   jobRole: z.string().optional().default('Senior Software Engineer'),
   companyName: z.string().optional().default('ApplyAI Corp'),
   score: z.number().optional().default(88),
-  interviewLink: z.string().optional().default('http://localhost:3001/interview-prep'),
+  interviewLink: z.string().optional().default(`${envConfig.NEXT_PUBLIC_APP_URL}/interview-prep`),
   scheduledTime: z.string().optional().default('Next Tuesday at 10:00 AM'),
   subject: z.string().optional(),
   emailType: z.string().optional().default('SELECTION_INTERVIEW'),

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { PageShell } from '@/components/page-shell';
+import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,11 +33,11 @@ import {
 import {
   useJobs,
   useCreateApplication,
-} from '@/lib/hooks/use-features';
-import type { Job } from '@/lib/types';
+} from '@/hooks/use-features';
+import type { Job } from '@/types/types';
 import { useToast } from '@/hooks/use-toast';
 
-import { JdAnalyzerDialog } from '@/components/jd-analyzer-dialog';
+import { JdAnalyzerDialog } from '@/features/ai/components/jd-analyzer-dialog';
 
 export default function JobsPage() {
   const router = useRouter();

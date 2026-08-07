@@ -18,7 +18,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useForgotPassword } from '@/lib/hooks/use-auth';
+import { useForgotPassword } from '@/hooks/use-auth';
 
 function generateCaptcha() {
   const num1 = Math.floor(Math.random() * 8) + 2;

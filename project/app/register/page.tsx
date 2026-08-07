@@ -23,12 +23,12 @@ import {
   ShieldCheck,
   ArrowRight,
 } from 'lucide-react';
-import { useRegister } from '@/lib/hooks/use-auth';
-import { useAppDispatch } from '@/lib/store/hooks';
-import { setCredentials } from '@/lib/store/auth-slice';
+import { useRegister } from '@/hooks/use-auth';
+import { useAppDispatch } from '@/store/hooks';
+import { setCredentials } from '@/store/auth-slice';
 import { useToast } from '@/hooks/use-toast';
-import { PasswordMeter, isPasswordValid } from '@/components/password-meter';
-import type { UserRole } from '@/lib/types';
+import { PasswordMeter, isPasswordValid } from '@/components/common/password-meter';
+import type { UserRole } from '@/types/types';
 
 const ROLES_LIST: { id: UserRole; label: string }[] = [
   { id: 'student', label: 'Student' },
@@ -114,7 +114,7 @@ export default function RegisterPage() {
       });
 
       const userRole: UserRole = (res.user?.role || selectedRole).toLowerCase() as UserRole;
-      const token = `auth-token-${Date.now()}`;
+      const token = res.accessToken || res.token || 'session-' + Date.now();
 
       document.cookie = `applyai_token=${token}; path=/; max-age=604800; SameSite=Lax`;
       document.cookie = `applyai_role=${userRole}; path=/; max-age=604800; SameSite=Lax`;
@@ -153,15 +153,27 @@ export default function RegisterPage() {
         });
         return;
       }
-      if (err?.data?.message || err?.message) {
-        setError(err.data?.message || err.message);
+
+      const errMsg = err?.data?.message || err?.message || '';
+      const isNetworkError =
+        !err?.status ||
+        errMsg.toLowerCase().includes('failed to fetch') ||
+        errMsg.toLowerCase().includes('network') ||
+        err?.status === 404 ||
+        err?.status === 502 ||
+        err?.status === 503;
+
+      if (!isNetworkError) {
+        setError(errMsg || 'Registration failed');
         toast({
           title: 'Registration Failed',
-          description: err.data?.message || err.message,
+          description: errMsg || 'Registration failed',
           variant: 'destructive',
         });
         return;
       }
+
+      console.warn('Backend unavailable, proceeding with demo account creation.');
     }
 
     // Demo Mode Fallback

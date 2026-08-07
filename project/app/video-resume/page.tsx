@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useAppSelector } from '@/lib/store/hooks';
-import { getDisplayName } from '@/lib/utils';
-import { PageShell } from '@/components/page-shell';
+import { useAppSelector } from '@/store/hooks';
+import { getDisplayName } from '@/utils/utils';
+import { PageShell } from '@/components/layout/page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

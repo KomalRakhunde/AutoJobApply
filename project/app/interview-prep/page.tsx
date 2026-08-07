@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { PageShell } from '@/components/page-shell';
+import { PageShell } from '@/components/layout/page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,11 +32,11 @@ import {
   CheckCircle2,
   Sliders,
 } from 'lucide-react';
-import { useInterviewQuestions } from '@/lib/hooks/use-features';
-import type { InterviewQuestionsResponse } from '@/lib/types';
+import { useInterviewQuestions } from '@/hooks/use-features';
+import type { InterviewQuestionsResponse } from '@/types/types';
 import { useToast } from '@/hooks/use-toast';
-import { useAppSelector } from '@/lib/store/hooks';
-import { getDisplayName } from '@/lib/utils';
+import { useAppSelector } from '@/store/hooks';
+import { getDisplayName } from '@/utils/utils';
 
 // Custom Semi-Circle SVG Gauge Meter for PACE
 function PaceGauge({ wpm = 145 }: { wpm?: number }) {

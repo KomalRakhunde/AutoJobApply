@@ -17,9 +17,9 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAppDispatch } from '@/lib/store/hooks';
-import { setCredentials } from '@/lib/store/auth-slice';
-import type { UserRole } from '@/lib/types';
+import { useAppDispatch } from '@/store/hooks';
+import { setCredentials } from '@/store/auth-slice';
+import type { UserRole } from '@/types/types';
 
 const ROLES_LIST: { id: UserRole; label: string }[] = [
   { id: 'student', label: 'Student Portal' },
@@ -73,7 +73,7 @@ export default function OnboardingConsentPage() {
       }
 
       const userRole = confirmedRole;
-      const token = `auth-token-${Date.now()}`;
+      const token = 'session-' + Date.now();
 
       document.cookie = `applyai_token=${token}; path=/; max-age=604800; SameSite=Lax`;
       document.cookie = `applyai_role=${userRole}; path=/; max-age=604800; SameSite=Lax`;

@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PageShell } from '@/components/page-shell';
+import { PageShell } from '@/components/layout/page-shell';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useApplications } from '@/lib/hooks/use-features';
-import { fetchRecruiterJobs, RecruiterJob } from '@/lib/recruiter-api';
+import { useApplications } from '@/hooks/use-features';
+import { fetchRecruiterJobs, RecruiterJob } from '@/services/recruiter/recruiter-api';
 import {
   TrendingUp,
   AlertTriangle,

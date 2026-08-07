@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import type { JobRequisition } from '@/lib/types/sourcing';
+import type { JobRequisition } from '@/types/sourcing';
 
 const RequisitionPayloadSchema = z.object({
   title: z.string({ required_error: 'Job Title is required' }),

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -11,8 +12,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+  const redirectUri = `${origin}/api/auth/callback/linkedin`;
   const linkedinClientId = process.env.LINKEDIN_CLIENT_ID;
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'}/api/auth/callback/linkedin`;
 
   if (linkedinClientId) {
     const scope = encodeURIComponent('openid profile email');
@@ -23,6 +25,6 @@ export async function GET(request: NextRequest) {
   const callbackUrl = new URL(`/api/auth/callback/linkedin`, request.url);
   callbackUrl.searchParams.set('role', role);
   callbackUrl.searchParams.set('prompt', 'select_account');
-  callbackUrl.searchParams.set('code', `mock-linkedin-code-${Date.now()}`);
+  callbackUrl.searchParams.set('code', randomBytes(16).toString('hex'));
   return NextResponse.redirect(callbackUrl);
 }

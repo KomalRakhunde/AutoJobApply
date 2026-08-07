@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAppSelector } from '@/lib/store/hooks';
-import { useApplications } from '@/lib/hooks/use-features';
-import { fetchRecruiterJobs, RecruiterJob } from '@/lib/recruiter-api';
+import { useAppSelector } from '@/store/hooks';
+import { useApplications } from '@/hooks/use-features';
+import { fetchRecruiterJobs, RecruiterJob } from '@/services/recruiter/recruiter-api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

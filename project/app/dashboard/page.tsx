@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAppSelector } from '@/lib/store/hooks';
-import { useApplications } from '@/lib/hooks/use-features';
-import { usePinnedFeatures, ALL_PINNABLE_FEATURES } from '@/lib/hooks/use-pinned-features';
-import { getDisplayName } from '@/lib/utils';
-import { PageShell } from '@/components/page-shell';
+import { useAppSelector } from '@/store/hooks';
+import { useApplications } from '@/hooks/use-features';
+import { usePinnedFeatures, ALL_PINNABLE_FEATURES } from '@/hooks/use-pinned-features';
+import { getDisplayName } from '@/utils/utils';
+import { PageShell } from '@/components/layout/page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,8 +52,8 @@ import RecruiterDashboardPage from './recruiter/page';
 import AdminDashboardPage from './admin/page';
 import SuperAdminDashboardPage from './super-admin/page';
 
-import { AiSetupWizard } from '@/components/ai-setup-wizard';
-import { ScheduleEventDialog } from '@/components/schedule-event-dialog';
+import { AiSetupWizard } from '@/features/ai/components/ai-setup-wizard';
+import { ScheduleEventDialog } from '@/features/interview/components/schedule-event-dialog';
 
 export default function DashboardPage() {
   const user = useAppSelector((s) => s.auth.user);
@@ -82,7 +82,7 @@ export default function DashboardPage() {
 
   const formattedUsername = getDisplayName(user);
 
-  const appsList = realApplications || [];
+  const appsList = Array.isArray(realApplications) ? realApplications : [];
   const totalApplied = appsList.length;
   const inProgress = appsList.filter(
     (a) => a.status?.toLowerCase() === 'applied' || a.status?.toLowerCase() === 'assessment' || a.status?.toLowerCase() === 'interview'

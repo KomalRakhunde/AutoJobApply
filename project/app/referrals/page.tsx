@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useAppSelector } from '@/lib/store/hooks';
-import { getDisplayName, copyToClipboard } from '@/lib/utils';
-import { PageShell } from '@/components/page-shell';
+import { useAppSelector } from '@/store/hooks';
+import { getDisplayName, copyToClipboard } from '@/utils/utils';
+import { PageShell } from '@/components/layout/page-shell';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
