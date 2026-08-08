@@ -1,22 +1,26 @@
-# Dependencies
+# Dependencies (Root, Frontend, Backend)
 node_modules/
+**/node_modules/
 /.pnp
 .pnp.js
 
 # Testing & Build Outputs
 /coverage
+**/coverage
 /.next/
+**/.next/
 /out/
-/build
+**/out/
+/build/
+**/build/
 /dist/
+**/dist/
 *.tsbuildinfo
 
-# Environment & Local Configuration
+# Environment & Local Secrets (STRICTLY EXCLUDED)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
 
 # Debug Logs
 npm-debug.log*
@@ -25,11 +29,15 @@ yarn-error.log*
 logs/
 *.log
 
-# Deployment & Cache Folders
+# Deployment & IDE Folders
 .vercel
+**/.vercel
 .netlify
+**/.netlify
 .idea
 .vscode/
+.bolt/
+.agents/
 .DS_Store
 
 # Temporary & Uploaded User Data
