@@ -1,0 +1,138 @@
+// ============================================================================
+// APPLYAI SOURCING & AUTONOMOUS HIRING AGENT — PRISMA POSTGRESQL SCHEMA
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  RECRUITER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum RoundType {
+  AI_CHAT_SCREENING
+  AI_VOICE_TECHNICAL
+  HUMAN_HR_INTERVIEW
+}
+
+enum CandidateStatus {
+  SOURCED
+  OUTREACH_SENT
+  SCREENING_IN_PROGRESS
+  SCREENING_PASSED
+  SCREENING_FAILED
+  INTERVIEW_SCHEDULED
+  HIRED
+}
+
+enum Channel {
+  EMAIL
+  WHATSAPP
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  password        String
+  firstName       String?
+  lastName        String?
+  role            Role      @default(STUDENT)
+  isVerified      Boolean   @default(false)
+  acceptedTermsAt DateTime?
+  isNewUser       Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model JobRequisition {
+  id              String             @id @default(uuid())
+  recruiterId     String
+  title           String
+  requiredSkills  String[]
+  experienceLevel String
+  targetLocation  String
+  targetOpenings  Int                @default(1)
+  description     String             @db.Text
+  roundsConfig    Json               // Stores PipelineRoundConfig[]
+  status          String             @default("OPEN")
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  candidates      SourcedCandidate[]
+
+  @@map("job_requisitions")
+}
+
+model SourcedCandidate {
+  id            String             @id @default(uuid())
+  requisitionId String
+  requisition   JobRequisition     @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  name          String
+  email         String
+  phone         String?
+  currentRole   String
+  company       String
+  location      String
+  linkedinUrl   String?
+  matchScore    Float              // Vector embedding cosine similarity score (0-100)
+  skills        String[]
+  status        CandidateStatus    @default(SOURCED)
+  outreachLogs  OutreachLog[]
+  scorecards    InterviewScorecard[]
+  scheduledSlots ScheduledSlot[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@map("sourced_candidates")
+}
+
+model OutreachLog {
+  id          String           @id @default(uuid())
+  candidateId String
+  candidate   SourcedCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  channel     Channel          @default(EMAIL)
+  message     String           @db.Text
+  inviteLink  String
+  sentAt      DateTime         @default(now())
+
+  @@map("outreach_logs")
+}
+
+model InterviewScorecard {
+  id                  String           @id @default(uuid())
+  candidateId         String
+  candidate           SourcedCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  roundNumber         Int
+  overallScore        Float
+  communicationRating String
+  strengths           Json
+  weaknesses          Json
+  qnaTranscript       Json
+  recommendation      String           // PASS | FAIL
+  evaluatedAt         DateTime         @default(now())
+
+  @@map("interview_scorecards")
+}
+
+model ScheduledSlot {
+  id              String           @id @default(uuid())
+  candidateId     String
+  candidate       SourcedCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  scheduledTime   DateTime
+  interviewerName String
+  meetLink        String
+  confirmed       Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+
+  @@map("scheduled_slots")
+}

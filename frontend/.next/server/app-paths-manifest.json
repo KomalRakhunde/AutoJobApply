@@ -1,0 +1,9 @@
+{
+  "/not-found": "app/not-found.js",
+  "/auto-apply/page": "app/auto-apply/page.js",
+  "/cover-letter/page": "app/cover-letter/page.js",
+  "/video-resume/page": "app/video-resume/page.js",
+  "/resume/page": "app/resume/page.js",
+  "/sourcing/page": "app/sourcing/page.js",
+  "/dashboard/recruiter/page": "app/dashboard/recruiter/page.js"
+}

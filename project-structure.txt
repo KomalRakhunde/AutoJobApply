@@ -1,0 +1,69 @@
+APPLY-AI/
+├── backend/
+│   ├── src/
+│   │   ├── admin/
+│   │   ├── ai/
+│   │   ├── applications/
+│   │   ├── auth/
+│   │   ├── automation/
+│   │   ├── cover-letters/
+│   │   ├── dashboard/
+│   │   ├── interview/
+│   │   ├── jobs/
+│   │   ├── notifications/
+│   │   ├── payments/
+│   │   ├── prisma/
+│   │   ├── profiles/
+│   │   ├── recruiters/
+│   │   ├── resume-parser/
+│   │   ├── resumes/
+│   │   ├── users/
+│   │   ├── app.module.ts
+│   │   └── main.ts
+│   ├── prisma/
+│   │   └── schema.prisma
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── nest-cli.json
+├── docs/
+│   └── API_CONTRACT.md
+├── frontend/
+│   ├── app/
+│   │   ├── admin/
+│   │   ├── applications/
+│   │   ├── auth/
+│   │   ├── auto-apply/
+│   │   ├── dashboard/
+│   │   ├── interview/
+│   │   ├── jobs/
+│   │   ├── profile/
+│   │   ├── resume/
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── ui/
+│   │   └── shared/
+│   ├── features/
+│   ├── hooks/
+│   ├── lib/
+│   ├── prisma/
+│   │   └── schema.prisma
+│   ├── public/
+│   ├── services/
+│   ├── store/
+│   ├── types/
+│   ├── utils/
+│   ├── middleware.ts
+│   ├── next.config.js
+│   ├── package.json
+│   ├── tailwind.config.ts
+│   └── tsconfig.json
+├── shared/
+│   └── README.md
+├── uploads/
+│   └── .gitkeep
+├── .env.example
+├── .gitignore
+├── project-structure.txt
+└── README.md
