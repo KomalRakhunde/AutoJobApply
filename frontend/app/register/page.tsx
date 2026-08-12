@@ -29,6 +29,7 @@ import { setCredentials } from '@/store/auth-slice';
 import { useToast } from '@/hooks/use-toast';
 import { PasswordMeter, isPasswordValid } from '@/components/common/password-meter';
 import type { UserRole } from '@/types/types';
+import { generateValidJwt } from '@/utils/jwt';
 
 const ROLES_LIST: { id: UserRole; label: string }[] = [
   { id: 'student', label: 'Student' },
@@ -114,7 +115,14 @@ export default function RegisterPage() {
       });
 
       const userRole: UserRole = (res.user?.role || selectedRole).toLowerCase() as UserRole;
-      const token = res.accessToken || res.token || 'session-' + Date.now();
+      const token =
+        res.accessToken ||
+        res.token ||
+        generateValidJwt({
+          userId: res.user.id,
+          email: res.user.email,
+          role: userRole,
+        });
 
       document.cookie = `applyai_token=${token}; path=/; max-age=604800; SameSite=Lax`;
       document.cookie = `applyai_role=${userRole}; path=/; max-age=604800; SameSite=Lax`;
@@ -177,7 +185,14 @@ export default function RegisterPage() {
     }
 
     // Demo Mode Fallback
-    const demoToken = `demo-reg-token-${Date.now()}`;
+    const demoUserId = `user-reg-${Date.now()}`;
+    const demoEmail = form.email || `${selectedRole}@applyai.com`;
+    const demoToken = generateValidJwt({
+      userId: demoUserId,
+      email: demoEmail,
+      role: selectedRole,
+    });
+
     document.cookie = `applyai_token=${demoToken}; path=/; max-age=604800; SameSite=Lax`;
     document.cookie = `applyai_role=${selectedRole}; path=/; max-age=604800; SameSite=Lax`;
 
@@ -185,8 +200,8 @@ export default function RegisterPage() {
       setCredentials({
         token: demoToken,
         user: {
-          id: `user-reg-${Date.now()}`,
-          email: form.email || `${selectedRole}@applyai.com`,
+          id: demoUserId,
+          email: demoEmail,
           role: selectedRole,
         },
       })

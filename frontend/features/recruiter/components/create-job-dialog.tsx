@@ -29,7 +29,9 @@ export function CreateJobDialog({ open, onOpenChange, onJobCreated }: CreateJobD
     department: 'Engineering',
     location: 'Remote',
     passingThreshold: 75,
+    targetHeadcount: 10,
     autoInterviewEnabled: true,
+    autoOfferEnabled: false,
     maxInterviewDurationMinutes: 10,
     description: '',
     requirements: '',
@@ -46,7 +48,9 @@ export function CreateJobDialog({ open, onOpenChange, onJobCreated }: CreateJobD
         department: formData.department,
         location: formData.location,
         passingThreshold: formData.passingThreshold,
+        targetHeadcount: formData.targetHeadcount,
         autoInterviewEnabled: formData.autoInterviewEnabled,
+        autoOfferEnabled: formData.autoOfferEnabled,
         maxInterviewDurationSeconds: formData.maxInterviewDurationMinutes * 60,
         description: formData.description,
         requirements: formData.requirements || formData.description,
@@ -59,7 +63,9 @@ export function CreateJobDialog({ open, onOpenChange, onJobCreated }: CreateJobD
         department: 'Engineering',
         location: 'Remote',
         passingThreshold: 75,
+        targetHeadcount: 10,
         autoInterviewEnabled: true,
+        autoOfferEnabled: false,
         maxInterviewDurationMinutes: 10,
         description: '',
         requirements: '',
@@ -133,18 +139,16 @@ export function CreateJobDialog({ open, onOpenChange, onJobCreated }: CreateJobD
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Max AI Interview Duration (Mins)</Label>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-slate-400 shrink-0" />
-                <Input
-                  type="number"
-                  min="3"
-                  max="30"
-                  value={formData.maxInterviewDurationMinutes}
-                  onChange={(e) => setFormData({ ...formData, maxInterviewDurationMinutes: Number(e.target.value) })}
-                  className="rounded-xl"
-                />
-              </div>
+              <Label className="text-xs font-semibold">Target Hiring Quota (Headcount)</Label>
+              <Input
+                type="number"
+                min="1"
+                max="500"
+                placeholder="e.g. 10 Interns"
+                value={formData.targetHeadcount}
+                onChange={(e) => setFormData({ ...formData, targetHeadcount: Number(e.target.value) })}
+                className="rounded-xl font-bold text-indigo-600 dark:text-indigo-400"
+              />
             </div>
           </div>
 

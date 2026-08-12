@@ -8,14 +8,17 @@ import {
   Query,
   UseInterceptors,
   UploadedFiles,
-  ParseIntPipe,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { RecruitersService, CreateJobDto } from './recruiters.service';
+import { CandidateSourcingService } from './sourcing.service';
 
 @Controller('recruiters')
 export class RecruitersController {
-  constructor(private readonly recruitersService: RecruitersService) {}
+  constructor(
+    private readonly recruitersService: RecruitersService,
+    private readonly sourcingService: CandidateSourcingService,
+  ) {}
 
   @Post('jobs')
   async createJobPosting(@Body() dto: CreateJobDto) {
@@ -30,6 +33,11 @@ export class RecruitersController {
   @Get('jobs/:id')
   async getJobPostingById(@Param('id') id: string) {
     return this.recruitersService.getJobPostingById(id);
+  }
+
+  @Post('jobs/:id/source-candidates')
+  async sourceCandidatesForJob(@Param('id') id: string) {
+    return this.sourcingService.sourcePublicCandidates(id);
   }
 
   @Post('jobs/:id/resumes/bulk-upload')
@@ -55,5 +63,14 @@ export class RecruitersController {
   @Delete('candidates/:id')
   async deleteCandidate(@Param('id') id: string) {
     return this.recruitersService.deleteCandidate(id);
+  }
+
+  @Post('jobs/:id/execute-action')
+  async executePipelineAction(
+    @Param('id') id: string,
+    @Body('action') action: 'TRIGGER_ROUND_TWO' | 'RANKED_SHORTLIST' | 'DISPATCH_AUTO_OFFERS',
+    @Body('candidateIds') candidateIds?: string[],
+  ) {
+    return this.recruitersService.executePipelineAction(id, action, candidateIds);
   }
 }

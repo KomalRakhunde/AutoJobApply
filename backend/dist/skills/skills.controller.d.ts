@@ -12,6 +12,7 @@ export declare class SkillsController {
         name: string;
         userId: string;
     }, never, import("@prisma/client/runtime/client").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
+    syncSkills(userId: string, skills: string[]): Promise<any[]>;
     findAll(userId: string): import(".prisma/client").Prisma.PrismaPromise<{
         level: string | null;
         id: string;

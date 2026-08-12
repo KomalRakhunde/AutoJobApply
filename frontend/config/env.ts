@@ -21,7 +21,8 @@ export const envConfig = {
   NEXT_PUBLIC_APP_URL: getAppUrl(),
 
   /** Backend API Base URL */
-  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || getAppUrl(),
+  NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+
 
   /** OpenRouter LLM API Key */
   OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || '',

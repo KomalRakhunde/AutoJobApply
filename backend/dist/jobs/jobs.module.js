@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.JobsModule = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_module_1 = require("../prisma/prisma.module");
+const automation_module_1 = require("../automation/automation.module");
 const jobs_controller_1 = require("./jobs.controller");
 const jobs_service_1 = require("./jobs.service");
 let JobsModule = class JobsModule {
@@ -16,9 +17,10 @@ let JobsModule = class JobsModule {
 exports.JobsModule = JobsModule;
 exports.JobsModule = JobsModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule],
+        imports: [prisma_module_1.PrismaModule, automation_module_1.AutomationModule],
         controllers: [jobs_controller_1.JobsController],
         providers: [jobs_service_1.JobsService],
+        exports: [jobs_service_1.JobsService],
     })
 ], JobsModule);
 //# sourceMappingURL=jobs.module.js.map

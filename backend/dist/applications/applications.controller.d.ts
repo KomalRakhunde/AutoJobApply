@@ -5,22 +5,7 @@ export declare class ApplicationsController {
     private readonly applicationsService;
     constructor(applicationsService: ApplicationsService);
     findAllRoot(req: any): Promise<{
-        id: string;
-        userId: string;
-        jobId: string;
         status: string;
-        createdAt: string;
-        updatedAt: string;
-        job: {
-            id: string;
-            title: string;
-            company: string;
-            location: string;
-            salary: string;
-            createdAt: string;
-            updatedAt: string;
-        };
-    }[] | ({
         resume: {
             id: string;
             createdAt: Date;
@@ -35,38 +20,21 @@ export declare class ApplicationsController {
             createdAt: Date;
             updatedAt: Date;
             title: string;
-            company: string;
             location: string | null;
+            company: string;
             description: string | null;
             salary: string | null;
             applyUrl: string | null;
         };
-    } & {
         id: string;
         updatedAt: Date;
         userId: string;
-        jobId: string;
         resumeId: string | null;
-        status: string;
+        jobId: string;
         appliedAt: Date;
-    })[]>;
+    }[]>;
     findAll(userId: string): Promise<{
-        id: string;
-        userId: string;
-        jobId: string;
         status: string;
-        createdAt: string;
-        updatedAt: string;
-        job: {
-            id: string;
-            title: string;
-            company: string;
-            location: string;
-            salary: string;
-            createdAt: string;
-            updatedAt: string;
-        };
-    }[] | ({
         resume: {
             id: string;
             createdAt: Date;
@@ -81,102 +49,90 @@ export declare class ApplicationsController {
             createdAt: Date;
             updatedAt: Date;
             title: string;
-            company: string;
             location: string | null;
+            company: string;
             description: string | null;
             salary: string | null;
             applyUrl: string | null;
         };
-    } & {
         id: string;
         updatedAt: Date;
         userId: string;
-        jobId: string;
         resumeId: string | null;
-        status: string;
+        jobId: string;
         appliedAt: Date;
-    })[]>;
+    }[]>;
     createRoot(req: any, dto: CreateApplicationDto): Promise<{
-        id: string;
-        updatedAt: Date;
-        userId: string;
-        jobId: string;
-        resumeId: string | null;
         status: string;
-        appliedAt: Date;
-    } | {
-        id: string;
-        userId: string;
-        jobId: string;
-        status: any;
-        createdAt: string;
-        updatedAt: string;
+        resume: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+            title: string;
+            fileUrl: string | null;
+            atsScore: string | null;
+        };
         job: {
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
             title: string;
+            location: string | null;
             company: string;
-            location: string;
-            salary: string;
-            createdAt: string;
-            updatedAt: string;
+            description: string | null;
+            salary: string | null;
+            applyUrl: string | null;
         };
+        id: string;
+        updatedAt: Date;
+        userId: string;
+        resumeId: string | null;
+        jobId: string;
+        appliedAt: Date;
+    }>;
+    bulkApply(req: any, jobIds: string[], resumeId?: string): Promise<{
+        message: string;
+        appliedCount: number;
+        applications: any[];
     }>;
     create(userId: string, dto: CreateApplicationDto): Promise<{
+        status: string;
+        resume: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            userId: string;
+            title: string;
+            fileUrl: string | null;
+            atsScore: string | null;
+        };
+        job: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            title: string;
+            location: string | null;
+            company: string;
+            description: string | null;
+            salary: string | null;
+            applyUrl: string | null;
+        };
         id: string;
         updatedAt: Date;
         userId: string;
-        jobId: string;
         resumeId: string | null;
-        status: string;
-        appliedAt: Date;
-    } | {
-        id: string;
-        userId: string;
         jobId: string;
-        status: any;
-        createdAt: string;
-        updatedAt: string;
-        job: {
-            id: string;
-            title: string;
-            company: string;
-            location: string;
-            salary: string;
-            createdAt: string;
-            updatedAt: string;
-        };
+        appliedAt: Date;
     }>;
     update(id: string, dto: UpdateApplicationDto): Promise<{
         id: string;
         updatedAt: Date;
         userId: string;
-        jobId: string;
         resumeId: string | null;
+        jobId: string;
         status: string;
         appliedAt: Date;
-    } | {
-        id: string;
-        userId: string;
-        jobId: string;
-        status: string;
-        createdAt: string;
-        updatedAt: string;
-        job: {
-            id: string;
-            title: string;
-            company: string;
-            location: string;
-            salary: string;
-            createdAt: string;
-            updatedAt: string;
-        };
-    } | {
-        id: string;
-        userId: string;
-        jobId: string;
-        status: string;
-        createdAt: string;
-        updatedAt: string;
     }>;
     remove(id: string): Promise<{
         message: string;

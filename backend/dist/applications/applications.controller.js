@@ -24,15 +24,19 @@ let ApplicationsController = class ApplicationsController {
         this.applicationsService = applicationsService;
     }
     findAllRoot(req) {
-        const userId = req.user?.userId;
+        const userId = req.user?.id || req.user?.userId || req.user?.sub;
         return this.applicationsService.findAll(userId);
     }
     findAll(userId) {
         return this.applicationsService.findAll(userId);
     }
     createRoot(req, dto) {
-        const userId = req.user?.userId || 'user-1';
+        const userId = req.user?.id || req.user?.userId || req.user?.sub || 'user-1';
         return this.applicationsService.create(userId, dto);
+    }
+    bulkApply(req, jobIds, resumeId) {
+        const userId = req.user?.id || req.user?.userId || req.user?.sub || 'user-1';
+        return this.applicationsService.bulkApply(userId, jobIds || [], resumeId);
     }
     create(userId, dto) {
         return this.applicationsService.create(userId, dto);
@@ -67,6 +71,15 @@ __decorate([
     __metadata("design:paramtypes", [Object, create_application_dto_1.CreateApplicationDto]),
     __metadata("design:returntype", void 0)
 ], ApplicationsController.prototype, "createRoot", null);
+__decorate([
+    (0, common_1.Post)('bulk-apply'),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Body)('jobIds')),
+    __param(2, (0, common_1.Body)('resumeId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Array, String]),
+    __metadata("design:returntype", void 0)
+], ApplicationsController.prototype, "bulkApply", null);
 __decorate([
     (0, common_1.Post)(':userId'),
     __param(0, (0, common_1.Param)('userId')),

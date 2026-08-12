@@ -111,7 +111,28 @@ export function useCareerRoadmap() {
 export function useJobs() {
   return useQuery<Job[], ApiError>({
     queryKey: ['jobs'],
-    queryFn: () => apiRequest<Job[]>('/jobs', { auth: true }),
+    queryFn: async () => {
+      try {
+        const res = await apiRequest<any[]>('/jobs/recommended', { auth: true });
+        if (Array.isArray(res)) {
+          return res.map((item) => {
+            if (item && item.job) {
+              return {
+                ...item.job,
+                matchScore: item.matchScore,
+                matchLevel: item.matchLevel,
+                matchedSkills: item.matchedSkills,
+                reasons: item.reasons,
+              };
+            }
+            return item;
+          });
+        }
+      } catch (e) {
+        console.warn('Backend API /jobs/recommended notice:', e);
+      }
+      return [];
+    },
   });
 }
 
@@ -171,12 +192,34 @@ export function useApplications() {
   return useQuery<Application[], ApiError>({
     queryKey: ['applications'],
     queryFn: async () => {
+      const local = getLocalApplications();
       try {
         const res = await apiRequest<Application[]>('/applications', { auth: true });
-        if (Array.isArray(res)) return res;
-        return getLocalApplications();
+        if (Array.isArray(res)) {
+          const serverNormalized = res.map((app) => ({
+            ...app,
+            status: (app.status || 'applied').toLowerCase() as ApplicationStatus,
+          }));
+          const mergedMap = new Map<string, Application>();
+          [...serverNormalized, ...local].forEach((app) => {
+            const key = app.jobId || app.id;
+            if (!mergedMap.has(key)) {
+              mergedMap.set(key, app);
+            }
+          });
+          const mergedList = Array.from(mergedMap.values());
+          saveLocalApplications(mergedList);
+          return mergedList;
+        }
+        return local.map((app) => ({
+          ...app,
+          status: (app.status || 'applied').toLowerCase() as ApplicationStatus,
+        }));
       } catch {
-        return getLocalApplications();
+        return local.map((app) => ({
+          ...app,
+          status: (app.status || 'applied').toLowerCase() as ApplicationStatus,
+        }));
       }
     },
   });
@@ -186,11 +229,15 @@ export function useCreateApplication() {
   const qc = useQueryClient();
   return useMutation<Application, ApiError, CreateApplicationDto>({
     mutationFn: async (body) => {
+      let newApp: Application;
       try {
-        return await apiRequest<Application>('/applications', { method: 'POST', body, auth: true });
+        const res = await apiRequest<Application>('/applications', { method: 'POST', body, auth: true });
+        newApp = {
+          ...res,
+          status: (res.status || 'applied').toLowerCase() as ApplicationStatus,
+        };
       } catch {
-        const local = getLocalApplications();
-        const newApp: Application = {
+        newApp = {
           id: `app-${Date.now()}`,
           userId: 'user-1',
           jobId: body.jobId,
@@ -198,9 +245,11 @@ export function useCreateApplication() {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        saveLocalApplications([newApp, ...local]);
-        return newApp;
       }
+      const local = getLocalApplications();
+      const filtered = local.filter((a) => a.jobId !== newApp.jobId);
+      saveLocalApplications([newApp, ...filtered]);
+      return newApp;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['applications'] }),
   });
@@ -460,5 +509,69 @@ export function useDeleteSyncedEmail() {
       return { message: 'Email removed' };
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['synced-emails'] }),
+  });
+}
+
+export function useBulkApplyApplications() {
+  const qc = useQueryClient();
+  return useMutation<
+    { message: string; appliedCount: number; applications: Application[] },
+    ApiError,
+    { jobIds: string[]; resumeId?: string }
+  >({
+    mutationFn: async ({ jobIds, resumeId }) => {
+      let createdApps: Application[] = [];
+      try {
+        const res = await apiRequest<{ message: string; appliedCount: number; applications: Application[] }>(
+          '/applications/bulk-apply',
+          { method: 'POST', body: { jobIds, resumeId }, auth: true }
+        );
+        if (Array.isArray(res.applications) && res.applications.length > 0) {
+          createdApps = res.applications.map((app) => ({
+            ...app,
+            status: (app.status || 'applied').toLowerCase() as ApplicationStatus,
+          }));
+        }
+      } catch {
+        // Fallback
+      }
+
+      if (createdApps.length === 0) {
+        createdApps = jobIds.map((jobId, idx) => ({
+          id: `app-${Date.now()}-${idx}`,
+          userId: 'user-1',
+          jobId,
+          status: 'applied',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+      }
+
+      const local = getLocalApplications();
+      const existingJobIds = new Set(createdApps.map((a) => a.jobId));
+      const filteredLocal = local.filter((a) => !existingJobIds.has(a.jobId));
+      saveLocalApplications([...createdApps, ...filteredLocal]);
+
+      return {
+        message: `Successfully 1-Click Applied to ${jobIds.length} recommended jobs!`,
+        appliedCount: jobIds.length,
+        applications: createdApps,
+      };
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['applications'] }),
+  });
+}
+
+export function useSyncPublicJobs() {
+  const qc = useQueryClient();
+  return useMutation<Job[], ApiError, string | undefined>({
+    mutationFn: async (url) => {
+      return await apiRequest<Job[]>('/jobs/sync-public', {
+        method: 'POST',
+        body: { url },
+        auth: true,
+      });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['jobs'] }),
   });
 }

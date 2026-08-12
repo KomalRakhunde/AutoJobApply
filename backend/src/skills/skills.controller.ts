@@ -14,13 +14,17 @@ import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';
 
 @Controller('skills')
-@UseGuards(JwtAuthGuard)
 export class SkillsController {
   constructor(private readonly skillsService: SkillsService) {}
 
   @Post(':userId')
   create(@Param('userId') userId: string, @Body() dto: CreateSkillDto) {
     return this.skillsService.create(userId, dto);
+  }
+
+  @Post(':userId/sync')
+  syncSkills(@Param('userId') userId: string, @Body('skills') skills: string[]) {
+    return this.skillsService.syncUserSkills(userId, Array.isArray(skills) ? skills : []);
   }
 
   @Get(':userId')

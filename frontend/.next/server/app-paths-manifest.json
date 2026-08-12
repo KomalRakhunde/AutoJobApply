@@ -1,9 +1,11 @@
 {
-  "/not-found": "app/not-found.js",
-  "/auto-apply/page": "app/auto-apply/page.js",
-  "/cover-letter/page": "app/cover-letter/page.js",
-  "/video-resume/page": "app/video-resume/page.js",
+  "/page": "app/page.js",
+  "/login/page": "app/login/page.js",
+  "/jobs/page": "app/jobs/page.js",
   "/resume/page": "app/resume/page.js",
-  "/sourcing/page": "app/sourcing/page.js",
-  "/dashboard/recruiter/page": "app/dashboard/recruiter/page.js"
+  "/onboarding/consent/page": "app/onboarding/consent/page.js",
+  "/api/auth/google/route": "app/api/auth/google/route.js",
+  "/api/auth/consent/route": "app/api/auth/consent/route.js",
+  "/dashboard/student/page": "app/dashboard/student/page.js",
+  "/api/auth/callback/google/route": "app/api/auth/callback/google/route.js"
 }

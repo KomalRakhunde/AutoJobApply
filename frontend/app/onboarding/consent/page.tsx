@@ -67,13 +67,18 @@ export default function OnboardingConsentPage() {
         }),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.message || 'Consent registration failed.');
       }
 
       const userRole = confirmedRole;
-      const token = 'session-' + Date.now();
+      const token = data.token || 'session-' + Date.now();
+      const userData = data.user || {
+        id: `user-oauth-${Date.now()}`,
+        email: email || `${userRole}@applyai.com`,
+        role: userRole,
+      };
 
       document.cookie = `applyai_token=${token}; path=/; max-age=604800; SameSite=Lax`;
       document.cookie = `applyai_role=${userRole}; path=/; max-age=604800; SameSite=Lax`;
@@ -81,11 +86,7 @@ export default function OnboardingConsentPage() {
       dispatch(
         setCredentials({
           token,
-          user: {
-            id: `user-oauth-${Date.now()}`,
-            email: email || `${userRole}@applyai.com`,
-            role: userRole,
-          },
+          user: userData,
         })
       );
 

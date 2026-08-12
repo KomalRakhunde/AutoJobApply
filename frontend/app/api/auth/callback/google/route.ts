@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { generateValidJwt } from '@/utils/jwt';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -20,8 +21,8 @@ export async function GET(request: NextRequest) {
   const lastName = 'Candidate';
 
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || new URL(request.url).origin;
-    const backendRes = await fetch(`${backendUrl}/api/auth/oauth`, {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const backendRes = await fetch(`${backendUrl}/auth/oauth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -34,7 +35,12 @@ export async function GET(request: NextRequest) {
     });
 
     let verifiedRole = requestedRole;
-    let jwtToken = `google-oauth-jwt-${Date.now()}`;
+    let jwtToken = generateValidJwt({
+      userId: `user-google-${Date.now()}`,
+      email: verifiedEmail,
+      role: requestedRole,
+      provider: 'google',
+    });
     let isNewUser = true;
     let acceptedTermsAt: string | null = null;
 
@@ -55,7 +61,7 @@ export async function GET(request: NextRequest) {
 
       const response = NextResponse.redirect(consentUrl);
       response.cookies.set('applyai_token', jwtToken, {
-        httpOnly: true,
+        httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
@@ -76,7 +82,7 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(redirectUrl);
 
     response.cookies.set('applyai_token', jwtToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
@@ -92,14 +98,19 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch (error) {
-    // Demo Mode: New user requiring consent redirection
+    const fallbackToken = generateValidJwt({
+      userId: `user-google-${Date.now()}`,
+      email: verifiedEmail,
+      role: requestedRole,
+      provider: 'google',
+    });
     const consentUrl = new URL(`/onboarding/consent`, request.url);
     consentUrl.searchParams.set('role', requestedRole);
     consentUrl.searchParams.set('provider', 'google');
     consentUrl.searchParams.set('email', verifiedEmail);
 
     const response = NextResponse.redirect(consentUrl);
-    response.cookies.set('applyai_token', `demo-google-token-${Date.now()}`, { path: '/', maxAge: 604800 });
+    response.cookies.set('applyai_token', fallbackToken, { path: '/', maxAge: 604800 });
     response.cookies.set('applyai_role', requestedRole, { path: '/', maxAge: 604800 });
     return response;
   }

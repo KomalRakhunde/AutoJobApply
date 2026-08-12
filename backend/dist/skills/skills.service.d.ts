@@ -20,6 +20,7 @@ export declare class SkillsService {
         name: string;
         userId: string;
     }[]>;
+    syncUserSkills(userId: string, skills: string[]): Promise<any[]>;
     update(id: string, dto: UpdateSkillDto): Promise<{
         level: string | null;
         id: string;

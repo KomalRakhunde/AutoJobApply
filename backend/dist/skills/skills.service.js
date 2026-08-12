@@ -27,6 +27,22 @@ let SkillsService = class SkillsService {
             where: { userId },
         });
     }
+    async syncUserSkills(userId, skills) {
+        await this.prisma.skill.deleteMany({ where: { userId } }).catch(() => { });
+        const created = [];
+        for (const name of skills) {
+            if (name && name.trim()) {
+                const item = await this.prisma.skill.create({
+                    data: {
+                        userId,
+                        name: name.trim(),
+                    },
+                });
+                created.push(item);
+            }
+        }
+        return created;
+    }
     async update(id, dto) {
         const skill = await this.prisma.skill.findUnique({ where: { id } });
         if (!skill)

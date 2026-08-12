@@ -30,7 +30,7 @@ import {
   FileSpreadsheet,
   Filter,
 } from 'lucide-react';
-import { RecruiterCandidate, deleteCandidateData, createAutomatedSelectionEmail } from '@/services/recruiter/recruiter-api';
+import { RecruiterCandidate, deleteCandidateData, createAutomatedSelectionEmail, retryCandidateEmail } from '@/services/recruiter/recruiter-api';
 import { OfferLetterDialog } from '@/features/recruiter/components/offer-letter-dialog';
 import { useToast } from '@/hooks/use-toast';
 
@@ -48,21 +48,52 @@ export function RecruiterCandidatesTable({
   const { toast } = useToast();
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'score' | 'name' | 'date'>('score');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'qualified' | 'review'>('all');
+  const [filterStatus, setFilterStatus] = useState<
+    'all' | 'qualified' | 'not_qualified' | 'shortlisted' | 'interview_invited' | 'email_failed' | 'review'
+  >('all');
   const [selectedCandidate, setSelectedCandidate] = useState<RecruiterCandidate | null>(null);
   const [viewEmailCandidate, setViewEmailCandidate] = useState<RecruiterCandidate | null>(null);
   const [offerCandidate, setOfferCandidate] = useState<RecruiterCandidate | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
   const [customRecipientEmail, setCustomRecipientEmail] = useState('');
   const [isSendingRealEmail, setIsSendingRealEmail] = useState(false);
   const [emailDeliveryStatus, setEmailDeliveryStatus] = useState<{
-    mode?: 'REAL_SMTP' | 'ETHEREAL_PREVIEW';
+    mode?: 'REAL_SMTP' | 'RESEND' | 'ETHEREAL_PREVIEW';
     recipient?: string;
     previewUrl?: string;
     message?: string;
   } | null>(null);
+
+  const handleRetryEmail = async (candidate: RecruiterCandidate) => {
+    setRetryingId(candidate.id);
+    try {
+      const res = await retryCandidateEmail(candidate.id, candidate.email, candidate.name);
+      if (res.success) {
+        toast({
+          title: '⚡ Email Retry Successful',
+          description: res.message || `Dispatched email to ${candidate.email} via Resend.`,
+        });
+        onRefresh?.();
+      } else {
+        toast({
+          title: 'Email Retry Warning',
+          description: res.message || 'Could not send email.',
+          variant: 'destructive',
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Retry Failed',
+        description: err.message || 'Error occurred while retrying email dispatch.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRetryingId(null);
+    }
+  };
 
   const handleExportCSV = () => {
     if (filtered.length === 0) {
@@ -70,7 +101,7 @@ export function RecruiterCandidatesTable({
       return;
     }
 
-    const headers = ['Candidate Name', 'Email', 'Phone', 'ATS Match Score (%)', 'Qualification Status', 'Top Skills'];
+    const headers = ['Candidate Name', 'Email', 'Phone', 'ATS Match Score (%)', 'Required Score (%)', 'Qualification Status', 'Email Status', 'Top Skills'];
     const rows = filtered.map((c) => {
       const score = c.scores[0]?.overallScore || 0;
       const isQual = score >= passingThreshold;
@@ -79,7 +110,9 @@ export function RecruiterCandidatesTable({
         `"${c.email.replace(/"/g, '""')}"`,
         `"${(c.phone || '').replace(/"/g, '""')}"`,
         score,
-        `"${isQual ? 'QUALIFIED' : 'REVIEW_REQUIRED'}"`,
+        c.requiredScore || passingThreshold,
+        `"${isQual ? 'QUALIFIED' : 'NOT_QUALIFIED'}"`,
+        `"${c.emailStatus || (isQual ? 'SENT' : 'NONE')}"`,
         `"${(c.skills || []).join('; ').replace(/"/g, '""')}"`,
       ];
     });
@@ -103,8 +136,15 @@ export function RecruiterCandidatesTable({
   const filtered = candidates
     .filter((c) => {
       const score = c.scores[0]?.overallScore || 0;
-      if (filterStatus === 'qualified' && score < passingThreshold) return false;
-      if (filterStatus === 'review' && score >= passingThreshold) return false;
+      const isQual = score >= passingThreshold;
+      const emailSt = c.emailStatus || (isQual ? 'SENT' : 'NONE');
+
+      if (filterStatus === 'qualified' && !isQual) return false;
+      if (filterStatus === 'not_qualified' && isQual) return false;
+      if (filterStatus === 'shortlisted' && c.currentStage !== 'SHORTLISTED' && !isQual) return false;
+      if (filterStatus === 'interview_invited' && !c.currentStage.toLowerCase().includes('interview') && !c.currentStage.toLowerCase().includes('call')) return false;
+      if (filterStatus === 'email_failed' && emailSt !== 'FAILED' && emailSt !== 'BOUNCED') return false;
+      if (filterStatus === 'review' && isQual) return false;
 
       const query = search.toLowerCase();
       return (
@@ -238,7 +278,7 @@ export function RecruiterCandidatesTable({
           </div>
 
           {/* Status Filter Pills */}
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#121522] p-1 rounded-xl w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-[#121522] p-1 rounded-xl w-full sm:w-auto">
             <button
               onClick={() => setFilterStatus('all')}
               className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
@@ -257,17 +297,27 @@ export function RecruiterCandidatesTable({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Qualified ({candidates.filter(c => (c.scores[0]?.overallScore || 0) >= passingThreshold).length})
+              Qualified ({candidates.filter((c) => (c.scores[0]?.overallScore || 0) >= passingThreshold).length})
             </button>
             <button
-              onClick={() => setFilterStatus('review')}
+              onClick={() => setFilterStatus('not_qualified')}
               className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
-                filterStatus === 'review'
-                  ? 'bg-amber-500 text-white shadow-xs font-bold'
+                filterStatus === 'not_qualified'
+                  ? 'bg-rose-500 text-white shadow-xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Review ({candidates.filter(c => (c.scores[0]?.overallScore || 0) < passingThreshold).length})
+              Not Qualified ({candidates.filter((c) => (c.scores[0]?.overallScore || 0) < passingThreshold).length})
+            </button>
+            <button
+              onClick={() => setFilterStatus('email_failed')}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all ${
+                filterStatus === 'email_failed'
+                  ? 'bg-rose-600 text-white shadow-xs font-bold'
+                  : 'text-rose-600 dark:text-rose-400 hover:text-rose-900'
+              }`}
+            >
+              Email Failed ({candidates.filter((c) => c.emailStatus === 'FAILED' || c.emailStatus === 'BOUNCED').length})
             </button>
           </div>
         </div>
@@ -327,9 +377,9 @@ export function RecruiterCandidatesTable({
             <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200/80 dark:border-slate-800 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               <tr>
                 <th className="py-3.5 px-4">Candidate Info</th>
-                <th className="py-3.5 px-4">Match Score</th>
+                <th className="py-3.5 px-4">ATS Match Score</th>
                 <th className="py-3.5 px-4">AI Executive Summary</th>
-                <th className="py-3.5 px-4">Selection Email & Voice Interview</th>
+                <th className="py-3.5 px-4">Selection Email & Delivery Status</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -347,7 +397,9 @@ export function RecruiterCandidatesTable({
                 filtered.map((candidate) => {
                   const topScoreObj = candidate.scores[0];
                   const score = topScoreObj?.overallScore || 0;
-                  const isQualified = score >= passingThreshold;
+                  const reqScore = candidate.requiredScore || passingThreshold;
+                  const isQualified = score >= reqScore;
+                  const emailSt = candidate.emailStatus || (isQualified ? 'SENT' : 'PENDING');
                   const outreach = candidate.emailOutreach || (isQualified ? createAutomatedSelectionEmail(candidate.name, candidate.email, 'Senior Full Stack Engineer', 'ApplyAI Corp', score, candidate.id) : undefined);
 
                   return (
@@ -364,18 +416,18 @@ export function RecruiterCandidatesTable({
                             </span>
                             {isQualified ? (
                               <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[9px] px-1.5 py-0">
-                                Qualified
+                                Shortlisted
                               </Badge>
                             ) : (
-                              <Badge className="bg-amber-50 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[9px] px-1.5 py-0">
-                                Review
+                              <Badge className="bg-rose-50 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-[9px] px-1.5 py-0">
+                                Not Qualified
                               </Badge>
                             )}
                           </div>
                           <div className="flex items-center gap-3 text-[11px] text-slate-500">
                             <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
                               <Mail className="h-3 w-3 text-slate-400" />
-                              {candidate.email}
+                              {candidate.email || 'Email Missing'}
                             </span>
                             {candidate.phone && (
                               <span className="flex items-center gap-1">
@@ -389,13 +441,18 @@ export function RecruiterCandidatesTable({
 
                       {/* AI Score */}
                       <td className="py-4 px-4">
-                        <span
-                          className={`inline-flex items-center justify-center font-extrabold text-sm px-2.5 py-1 rounded-xl border ${getScoreBadge(
-                            score
-                          )}`}
-                        >
-                          {score}%
-                        </span>
+                        <div className="space-y-1">
+                          <span
+                            className={`inline-flex items-center justify-center font-extrabold text-sm px-2.5 py-1 rounded-xl border ${getScoreBadge(
+                              score
+                            )}`}
+                          >
+                            {score}%
+                          </span>
+                          <p className="text-[10px] text-slate-400 font-mono">
+                            Cutoff: <span className="font-bold text-slate-700 dark:text-slate-300">{reqScore}%</span>
+                          </p>
+                        </div>
                       </td>
 
                       {/* Summary */}
@@ -412,16 +469,16 @@ export function RecruiterCandidatesTable({
                         </button>
                       </td>
 
-                      {/* Selection Email & Voice Interview Status */}
+                      {/* Selection Email & Delivery Status */}
                       <td className="py-4 px-4">
-                        {outreach?.sent || isQualified ? (
+                        {emailSt === 'DELIVERED' || emailSt === 'SENT' ? (
                           <div className="space-y-1">
                             <Badge className="bg-emerald-500 text-white border-emerald-600 text-[10px] px-2 py-0.5 font-bold gap-1 shadow-xs">
                               <CheckCircle2 className="h-3 w-3" />
-                              AUTO SELECTION EMAIL SENT
+                              {emailSt === 'DELIVERED' ? 'DELIVERED (Resend)' : 'SENT (Resend API)'}
                             </Badge>
                             <p className="text-[10.5px] text-slate-500 dark:text-slate-400">
-                              Sent to <span className="font-semibold text-slate-700 dark:text-slate-300">{candidate.email}</span>
+                              Target: <span className="font-semibold text-slate-700 dark:text-slate-300">{candidate.email}</span>
                             </p>
                             <Button
                               size="sm"
@@ -436,9 +493,37 @@ export function RecruiterCandidatesTable({
                               <span>View Sent Email</span>
                             </Button>
                           </div>
-                        ) : (
+                        ) : emailSt === 'FAILED' || emailSt === 'BOUNCED' ? (
                           <div className="space-y-1">
-                            <span className="text-[11px] text-slate-400 italic block">Below Cutoff ({score}%)</span>
+                            <Badge className="bg-rose-500 text-white border-rose-600 text-[10px] px-2 py-0.5 font-bold gap-1 shadow-xs">
+                              <AlertCircle className="h-3 w-3" />
+                              EMAIL FAILED ({emailSt})
+                            </Badge>
+                            {candidate.emailError && (
+                              <p className="text-[10px] text-rose-600 dark:text-rose-400 font-medium max-w-xs truncate" title={candidate.emailError}>
+                                Reason: {candidate.emailError}
+                              </p>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={retryingId === candidate.id}
+                              onClick={() => handleRetryEmail(candidate)}
+                              className="h-7 text-[10.5px] font-bold text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/60 gap-1 rounded-xl"
+                            >
+                              {retryingId === candidate.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Send className="h-3 w-3" />
+                              )}
+                              <span>Retry Email</span>
+                            </Button>
+                          </div>
+                        ) : isQualified ? (
+                          <div className="space-y-1">
+                            <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] px-2 py-0.5 font-bold gap-1">
+                              <Clock className="h-3 w-3" /> PENDING DISPATCH
+                            </Badge>
                             <Button
                               size="sm"
                               variant="outline"
@@ -446,8 +531,13 @@ export function RecruiterCandidatesTable({
                               className="h-7 text-[10px] font-bold text-indigo-600 gap-1 rounded-lg"
                             >
                               <Send className="h-3 w-3" />
-                              <span>Send Selection Email</span>
+                              <span>Send Resend Email</span>
                             </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <span className="text-[11px] text-slate-400 italic block">Not Shortlisted (Score {score}% &lt; Cutoff {reqScore}%)</span>
+                            <span className="text-[10px] text-slate-400">No automated email sent</span>
                           </div>
                         )}
                       </td>
@@ -455,6 +545,19 @@ export function RecruiterCandidatesTable({
                       {/* Actions */}
                       <td className="py-4 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {emailSt === 'FAILED' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={retryingId === candidate.id}
+                              onClick={() => handleRetryEmail(candidate)}
+                              className="h-8 text-[11px] font-bold text-rose-600 border-rose-300 rounded-xl gap-1"
+                              title="Retry failed email sending"
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                              <span>Retry</span>
+                            </Button>
+                          )}
                           {isQualified && (
                             <Button
                               size="sm"

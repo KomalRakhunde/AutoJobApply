@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { generateValidJwt } from '@/utils/jwt';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,36 +14,61 @@ export async function POST(request: NextRequest) {
     }
 
     const selectedRole = (role || 'student').toLowerCase();
+    const userEmail = email || `${selectedRole}@applyai.com`;
     const now = new Date().toISOString();
 
-    // Call NestJS backend or update database
+    let token = request.cookies.get('applyai_token')?.value;
+    let userId = `user-oauth-${Date.now()}`;
+
+    // Call NestJS backend /auth/oauth to register or login user & get NestJS JWT
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || new URL(request.url).origin;
-      await fetch(`${backendUrl}/api/auth/consent`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${backendUrl}/auth/oauth`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email,
-          role: selectedRole,
-          acceptedTermsAt: now,
-          isNewUser: false,
+          email: userEmail,
+          requestedRole: selectedRole,
+          provider: 'google',
         }),
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.accessToken) {
+          token = data.accessToken;
+        }
+        if (data.user?.id) {
+          userId = data.user.id;
+        }
+      }
     } catch (e) {
-      // Demo backend fallback
+      // Backend unreachable fallback
     }
 
-    const token = request.cookies.get('applyai_token')?.value || 'session-' + Date.now();
+    // Ensure token is a valid JWT format
+    if (!token || !token.includes('.')) {
+      token = generateValidJwt({
+        userId,
+        email: userEmail,
+        role: selectedRole,
+      });
+    }
 
     const response = NextResponse.json({
       success: true,
       message: 'Terms & conditions accepted successfully.',
       role: selectedRole,
       acceptedTermsAt: now,
+      token,
+      user: {
+        id: userId,
+        email: userEmail,
+        role: selectedRole,
+      },
     });
 
     response.cookies.set('applyai_token', token, {
-      httpOnly: true,
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',

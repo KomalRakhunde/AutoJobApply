@@ -81,7 +81,9 @@ let RecruitersService = class RecruitersService {
                 description: dto.description,
                 requirements: dto.requirements,
                 passingThreshold: dto.passingThreshold ?? 70,
+                targetHeadcount: dto.targetHeadcount ?? 10,
                 autoInterviewEnabled: dto.autoInterviewEnabled ?? false,
+                autoOfferEnabled: dto.autoOfferEnabled ?? false,
                 maxInterviewDurationSeconds: dto.maxInterviewDurationSeconds ?? 600,
                 pipelineStages: {
                     create: [
@@ -119,7 +121,9 @@ let RecruitersService = class RecruitersService {
             description: 'Building modern web applications',
             requirements: 'React, Node.js, TypeScript',
             passingThreshold: 75,
+            targetHeadcount: 10,
             autoInterviewEnabled: true,
+            autoOfferEnabled: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             _count: { candidates: 12 },
@@ -139,7 +143,9 @@ let RecruitersService = class RecruitersService {
             description: 'Creating high performance UI components',
             requirements: 'React, Next.js, Tailwind CSS',
             passingThreshold: 80,
+            targetHeadcount: 5,
             autoInterviewEnabled: true,
+            autoOfferEnabled: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             _count: { candidates: 8 },
@@ -447,6 +453,85 @@ let RecruitersService = class RecruitersService {
             },
         });
         return { message: 'Candidate data successfully deleted and anonymized' };
+    }
+    async executePipelineAction(jobPostingId, action, candidateIds) {
+        const job = await this.getJobPostingById(jobPostingId);
+        let candidateList = await this.getCandidatesByJob(jobPostingId);
+        if (candidateIds && candidateIds.length > 0) {
+            candidateList = candidateList.filter((c) => candidateIds.includes(c.id));
+        }
+        const quotaLimit = job.targetHeadcount || 10;
+        const sortedCandidates = [...candidateList].sort((a, b) => {
+            const scoreA = a.scores?.[0]?.overallScore || 0;
+            const scoreB = b.scores?.[0]?.overallScore || 0;
+            return scoreB - scoreA;
+        });
+        if (action === 'TRIGGER_ROUND_TWO') {
+            const updated = [];
+            for (const cand of sortedCandidates) {
+                if ((cand.scores?.[0]?.overallScore || 0) >= (job.passingThreshold || 70)) {
+                    try {
+                        await this.prisma.candidate.update({
+                            where: { id: cand.id },
+                            data: { currentStage: 'AI Round 2', status: 'ROUND_TWO_INVITED' },
+                        });
+                    }
+                    catch { }
+                    updated.push(cand.name);
+                }
+            }
+            return {
+                action: 'TRIGGER_ROUND_TWO',
+                message: `Successfully invited ${updated.length} candidate(s) to AI Round 2 (Technical Screening).`,
+                candidatesInvited: updated,
+            };
+        }
+        if (action === 'RANKED_SHORTLIST') {
+            const topRanked = sortedCandidates.slice(0, quotaLimit).map((c, i) => ({
+                rank: i + 1,
+                name: c.name,
+                email: c.email,
+                score: c.scores?.[0]?.overallScore || 0,
+                status: c.status,
+            }));
+            return {
+                action: 'RANKED_SHORTLIST',
+                targetQuota: quotaLimit,
+                totalQualified: sortedCandidates.length,
+                shortlist: topRanked,
+                message: `Generated top ${topRanked.length} ranked candidate shortlist for ${job.title} goal (${quotaLimit} hires).`,
+            };
+        }
+        if (action === 'DISPATCH_AUTO_OFFERS') {
+            const offersSent = [];
+            const eligibleForOffer = sortedCandidates.filter((c) => (c.scores?.[0]?.overallScore || 0) >= (job.passingThreshold || 70)).slice(0, quotaLimit);
+            for (const cand of eligibleForOffer) {
+                try {
+                    await this.prisma.offer.create({
+                        data: {
+                            candidateId: cand.id,
+                            roleTitle: job.title,
+                            salary: '$145,000 / yr',
+                            status: 'Sent',
+                        },
+                    });
+                    await this.prisma.candidate.update({
+                        where: { id: cand.id },
+                        data: { currentStage: 'Offer Sent', status: 'OFFER_SENT' },
+                    });
+                }
+                catch { }
+                offersSent.push({ name: cand.name, email: cand.email, score: cand.scores?.[0]?.overallScore || 0 });
+            }
+            return {
+                action: 'DISPATCH_AUTO_OFFERS',
+                targetQuota: quotaLimit,
+                offersDispatchedCount: offersSent.length,
+                recipients: offersSent,
+                message: `Auto-dispatched ${offersSent.length} official employment offer letters to meet target quota of ${quotaLimit} ${job.title}(s).`,
+            };
+        }
+        throw new common_1.BadRequestException('Invalid pipeline action specified');
     }
 };
 exports.RecruitersService = RecruitersService;

@@ -21,7 +21,7 @@ export class ApplicationsController {
 
   @Get()
   findAllRoot(@Req() req: any) {
-    const userId = req.user?.userId;
+    const userId = req.user?.id || req.user?.userId || req.user?.sub;
     return this.applicationsService.findAll(userId);
   }
 
@@ -32,8 +32,18 @@ export class ApplicationsController {
 
   @Post()
   createRoot(@Req() req: any, @Body() dto: CreateApplicationDto) {
-    const userId = req.user?.userId || 'user-1';
+    const userId = req.user?.id || req.user?.userId || req.user?.sub || 'user-1';
     return this.applicationsService.create(userId, dto);
+  }
+
+  @Post('bulk-apply')
+  bulkApply(
+    @Req() req: any,
+    @Body('jobIds') jobIds: string[],
+    @Body('resumeId') resumeId?: string,
+  ) {
+    const userId = req.user?.id || req.user?.userId || req.user?.sub || 'user-1';
+    return this.applicationsService.bulkApply(userId, jobIds || [], resumeId);
   }
 
   @Post(':userId')

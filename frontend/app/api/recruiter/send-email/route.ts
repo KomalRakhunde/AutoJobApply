@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { envConfig } from '@/config/env';
+import { sendShortlistEmail, validateEmail } from '@/lib/email/resend-service';
 
 const SendEmailSchema = z.object({
   candidateName: z.string().optional().default('Candidate'),
@@ -16,6 +17,11 @@ const SendEmailSchema = z.object({
   scheduledTime: z.string().optional().default('Next Tuesday at 10:00 AM'),
   subject: z.string().optional(),
   emailType: z.string().optional().default('SELECTION_INTERVIEW'),
+  nextStepType: z.string().optional(),
+  nextStepDescription: z.string().optional(),
+  nextStepLink: z.string().optional(),
+  date: z.string().optional(),
+  time: z.string().optional(),
   salary: z.string().optional().default('145,000'),
   currency: z.string().optional().default('USD ($)'),
   joiningDate: z.string().optional().default('August 15, 2026'),
@@ -106,6 +112,11 @@ export async function POST(req: Request) {
       scheduledTime,
       subject,
       emailType,
+      nextStepType,
+      nextStepDescription,
+      nextStepLink,
+      date,
+      time,
       salary,
       currency,
       joiningDate,
@@ -115,8 +126,57 @@ export async function POST(req: Request) {
 
     const targetEmail = recipientEmail || candidateEmail;
 
-    if (!targetEmail) {
-      return NextResponse.json({ error: 'Target recipient email is required' }, { status: 400 });
+    const emailCheck = validateEmail(targetEmail);
+    if (!emailCheck.valid) {
+      return NextResponse.json(
+        {
+          success: false,
+          emailSent: false,
+          emailStatus: 'FAILED',
+          error: emailCheck.reason || 'Invalid candidate email address',
+        },
+        { status: 400 }
+      );
+    }
+
+    // 1. Primary Dispatch Provider: Resend Service
+    if (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('placeholder')) {
+      const resendResult = await sendShortlistEmail({
+        candidateName: candidateName || 'Candidate',
+        candidateEmail: targetEmail!,
+        jobTitle: jobRole,
+        companyName,
+        nextStepType: nextStepType || 'AI Technical Voice Screening',
+        nextStepDescription: nextStepDescription || `Technical evaluation for ${jobRole} position.`,
+        nextStepLink: nextStepLink || interviewLink,
+        date: date || 'Next Tuesday',
+        time: time || scheduledTime || '10:00 AM',
+        customSubject: subject,
+      });
+
+      if (resendResult.success) {
+        return NextResponse.json({
+          success: true,
+          emailSent: true,
+          emailStatus: 'SENT',
+          mode: 'RESEND',
+          recipient: targetEmail,
+          messageId: resendResult.messageId,
+          message: `Automated shortlist email successfully delivered to ${targetEmail} via Resend API!`,
+        });
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            emailSent: false,
+            emailStatus: 'FAILED',
+            mode: 'RESEND',
+            recipient: targetEmail,
+            error: resendResult.error || 'Resend API failed to send email',
+          },
+          { status: 500 }
+        );
+      }
     }
 
     const { gmailUser, gmailPass, smtpHost, smtpPort } = getEnvCredentials();

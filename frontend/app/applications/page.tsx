@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { PageShell } from '@/components/layout/page-shell';
+import { CandidateJourneyStepper } from '@/components/layout/candidate-journey-stepper';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -52,9 +53,11 @@ export default function ApplicationsPage() {
     const map = new Map<ApplicationStatus, Application[]>();
     APPLICATION_STATUSES.forEach((s) => map.set(s.value, []));
     (Array.isArray(applications) ? applications : []).forEach((app: Application) => {
-      const arr = map.get(app.status) ?? [];
-      arr.push(app);
-      map.set(app.status, arr);
+      const normStatus = (app.status || 'applied').toLowerCase() as ApplicationStatus;
+      const targetStage = map.has(normStatus) ? normStatus : 'applied';
+      const arr = map.get(targetStage) || [];
+      arr.push({ ...app, status: targetStage });
+      map.set(targetStage, arr);
     });
     return map;
   }, [applications]);

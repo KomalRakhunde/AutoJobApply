@@ -16,10 +16,13 @@ exports.RecruitersController = void 0;
 const common_1 = require("@nestjs/common");
 const platform_express_1 = require("@nestjs/platform-express");
 const recruiters_service_1 = require("./recruiters.service");
+const sourcing_service_1 = require("./sourcing.service");
 let RecruitersController = class RecruitersController {
     recruitersService;
-    constructor(recruitersService) {
+    sourcingService;
+    constructor(recruitersService, sourcingService) {
         this.recruitersService = recruitersService;
+        this.sourcingService = sourcingService;
     }
     async createJobPosting(dto) {
         return this.recruitersService.createJobPosting(dto);
@@ -30,6 +33,9 @@ let RecruitersController = class RecruitersController {
     async getJobPostingById(id) {
         return this.recruitersService.getJobPostingById(id);
     }
+    async sourceCandidatesForJob(id) {
+        return this.sourcingService.sourcePublicCandidates(id);
+    }
     async bulkUploadResumes(id, files) {
         return this.recruitersService.bulkUploadResumes(id, files);
     }
@@ -39,6 +45,9 @@ let RecruitersController = class RecruitersController {
     }
     async deleteCandidate(id) {
         return this.recruitersService.deleteCandidate(id);
+    }
+    async executePipelineAction(id, action, candidateIds) {
+        return this.recruitersService.executePipelineAction(id, action, candidateIds);
     }
 };
 exports.RecruitersController = RecruitersController;
@@ -62,6 +71,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], RecruitersController.prototype, "getJobPostingById", null);
+__decorate([
+    (0, common_1.Post)('jobs/:id/source-candidates'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], RecruitersController.prototype, "sourceCandidatesForJob", null);
 __decorate([
     (0, common_1.Post)('jobs/:id/resumes/bulk-upload'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FilesInterceptor)('files', 30)),
@@ -88,8 +104,18 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], RecruitersController.prototype, "deleteCandidate", null);
+__decorate([
+    (0, common_1.Post)('jobs/:id/execute-action'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('action')),
+    __param(2, (0, common_1.Body)('candidateIds')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Array]),
+    __metadata("design:returntype", Promise)
+], RecruitersController.prototype, "executePipelineAction", null);
 exports.RecruitersController = RecruitersController = __decorate([
     (0, common_1.Controller)('recruiters'),
-    __metadata("design:paramtypes", [recruiters_service_1.RecruitersService])
+    __metadata("design:paramtypes", [recruiters_service_1.RecruitersService,
+        sourcing_service_1.CandidateSourcingService])
 ], RecruitersController);
 //# sourceMappingURL=recruiters.controller.js.map

@@ -36,29 +36,7 @@ export class ElasticsearchSearchService {
    */
   async searchJobs(query: string, filters?: { minSalaryLpa?: number; minExpYears?: number; remoteOnly?: boolean }): Promise<JobSearchHit[]> {
     this.logger.log(`[Elasticsearch] Querying index ${this.jobsIndexName} for "${query}" with filters ${JSON.stringify(filters || {})}`);
-
-    return [
-      {
-        id: 'job-es-101',
-        title: 'Senior Full Stack Software Engineer',
-        company: 'TechNova Systems',
-        location: 'Remote',
-        salaryMin: 2200000,
-        salaryMax: 3500000,
-        skills: ['React', 'Next.js', 'Node.js', 'PostgreSQL'],
-        matchScore: 0.96,
-      },
-      {
-        id: 'job-es-102',
-        title: 'Lead Frontend Architect',
-        company: 'CloudScale AI',
-        location: 'Remote',
-        salaryMin: 2800000,
-        salaryMax: 4200000,
-        skills: ['TypeScript', 'Next.js', 'GraphQL', 'Tailwind'],
-        matchScore: 0.91,
-      },
-    ];
+    return [];
   }
 
   /**

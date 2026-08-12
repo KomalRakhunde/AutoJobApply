@@ -9,30 +9,33 @@ export declare class JobsController {
         createdAt: Date;
         updatedAt: Date;
         title: string;
-        company: string;
         location: string | null;
+        company: string;
         description: string | null;
         salary: string | null;
         applyUrl: string | null;
     }, never, import("@prisma/client/runtime/client").DefaultArgs, import(".prisma/client").Prisma.PrismaClientOptions>;
-    findAll(): import(".prisma/client").Prisma.PrismaPromise<{
+    findAll(req: any): Promise<any[]>;
+    findAllPublicPool(): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         title: string;
-        company: string;
         location: string | null;
+        company: string;
         description: string | null;
         salary: string | null;
         applyUrl: string | null;
     }[]>;
+    getRecommended(req: any): Promise<import("./jobs.service").UserJobMatchResult[]>;
+    syncPublicJobs(url?: string): Promise<any[]>;
     update(id: string, dto: UpdateJobDto): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
         title: string;
-        company: string;
         location: string | null;
+        company: string;
         description: string | null;
         salary: string | null;
         applyUrl: string | null;

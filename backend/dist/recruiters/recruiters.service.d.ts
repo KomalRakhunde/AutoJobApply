@@ -9,7 +9,9 @@ export interface CreateJobDto {
     description: string;
     requirements: string;
     passingThreshold?: number;
+    targetHeadcount?: number;
     autoInterviewEnabled?: boolean;
+    autoOfferEnabled?: boolean;
     maxInterviewDurationSeconds?: number;
 }
 export declare class RecruitersService {
@@ -19,62 +21,37 @@ export declare class RecruitersService {
     constructor(prisma: PrismaService, aiService: AiService, interviewService: InterviewService);
     private getOrCreateDefaultRecruiter;
     createJobPosting(dto: CreateJobDto): Promise<{
+        _count: {
+            candidates: number;
+        };
         pipelineStages: {
             id: string;
             createdAt: Date;
             name: string;
+            jobPostingId: string;
             stageOrder: number;
             stageType: string;
-            jobPostingId: string;
         }[];
-        _count: {
-            candidates: number;
-        };
     } & {
         id: string;
-        title: string;
-        department: string | null;
-        location: string | null;
-        employmentType: string | null;
-        description: string;
-        requirements: string;
-        passingThreshold: number;
-        autoInterviewEnabled: boolean;
-        maxInterviewDurationSeconds: number;
-        status: string;
         createdAt: Date;
         updatedAt: Date;
+        title: string;
+        location: string | null;
+        description: string;
+        status: string;
         recruiterId: string;
+        department: string | null;
+        employmentType: string | null;
+        requirements: string;
+        passingThreshold: number;
+        targetHeadcount: number;
+        autoInterviewEnabled: boolean;
+        autoOfferEnabled: boolean;
+        maxInterviewDurationSeconds: number;
     }>;
     private demoJobs;
-    getJobPostings(): Promise<({
-        pipelineStages: {
-            id: string;
-            createdAt: Date;
-            name: string;
-            stageOrder: number;
-            stageType: string;
-            jobPostingId: string;
-        }[];
-        _count: {
-            candidates: number;
-        };
-    } & {
-        id: string;
-        title: string;
-        department: string | null;
-        location: string | null;
-        employmentType: string | null;
-        description: string;
-        requirements: string;
-        passingThreshold: number;
-        autoInterviewEnabled: boolean;
-        maxInterviewDurationSeconds: number;
-        status: string;
-        createdAt: Date;
-        updatedAt: Date;
-        recruiterId: string;
-    })[] | {
+    getJobPostings(): Promise<{
         id: string;
         title: string;
         department: string;
@@ -83,7 +60,9 @@ export declare class RecruitersService {
         description: string;
         requirements: string;
         passingThreshold: number;
+        targetHeadcount: number;
         autoInterviewEnabled: boolean;
+        autoOfferEnabled: boolean;
         createdAt: string;
         updatedAt: string;
         _count: {
@@ -94,7 +73,36 @@ export declare class RecruitersService {
             name: string;
             stageOrder: number;
         }[];
-    }[]>;
+    }[] | ({
+        _count: {
+            candidates: number;
+        };
+        pipelineStages: {
+            id: string;
+            createdAt: Date;
+            name: string;
+            jobPostingId: string;
+            stageOrder: number;
+            stageType: string;
+        }[];
+    } & {
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        title: string;
+        location: string | null;
+        description: string;
+        status: string;
+        recruiterId: string;
+        department: string | null;
+        employmentType: string | null;
+        requirements: string;
+        passingThreshold: number;
+        targetHeadcount: number;
+        autoInterviewEnabled: boolean;
+        autoOfferEnabled: boolean;
+        maxInterviewDurationSeconds: number;
+    })[]>;
     getJobPostingById(id: string): Promise<{
         id: string;
         title: string;
@@ -104,7 +112,9 @@ export declare class RecruitersService {
         description: string;
         requirements: string;
         passingThreshold: number;
+        targetHeadcount: number;
         autoInterviewEnabled: boolean;
+        autoOfferEnabled: boolean;
         createdAt: string;
         updatedAt: string;
         _count: {
@@ -116,32 +126,34 @@ export declare class RecruitersService {
             stageOrder: number;
         }[];
     } | ({
+        _count: {
+            candidates: number;
+        };
         pipelineStages: {
             id: string;
             createdAt: Date;
             name: string;
+            jobPostingId: string;
             stageOrder: number;
             stageType: string;
-            jobPostingId: string;
         }[];
-        _count: {
-            candidates: number;
-        };
     } & {
         id: string;
-        title: string;
-        department: string | null;
-        location: string | null;
-        employmentType: string | null;
-        description: string;
-        requirements: string;
-        passingThreshold: number;
-        autoInterviewEnabled: boolean;
-        maxInterviewDurationSeconds: number;
-        status: string;
         createdAt: Date;
         updatedAt: Date;
+        title: string;
+        location: string | null;
+        description: string;
+        status: string;
         recruiterId: string;
+        department: string | null;
+        employmentType: string | null;
+        requirements: string;
+        passingThreshold: number;
+        targetHeadcount: number;
+        autoInterviewEnabled: boolean;
+        autoOfferEnabled: boolean;
+        maxInterviewDurationSeconds: number;
     })>;
     bulkUploadResumes(jobPostingId: string, files: Express.Multer.File[]): Promise<{
         message: string;
@@ -152,5 +164,39 @@ export declare class RecruitersService {
     getCandidatesByJob(jobPostingId: string, search?: string, minScore?: number, stage?: string): Promise<any[]>;
     deleteCandidate(candidateId: string): Promise<{
         message: string;
+    }>;
+    executePipelineAction(jobPostingId: string, action: 'TRIGGER_ROUND_TWO' | 'RANKED_SHORTLIST' | 'DISPATCH_AUTO_OFFERS', candidateIds?: string[]): Promise<{
+        action: string;
+        message: string;
+        candidatesInvited: any[];
+        targetQuota?: undefined;
+        totalQualified?: undefined;
+        shortlist?: undefined;
+        offersDispatchedCount?: undefined;
+        recipients?: undefined;
+    } | {
+        action: string;
+        targetQuota: number;
+        totalQualified: number;
+        shortlist: {
+            rank: number;
+            name: any;
+            email: any;
+            score: any;
+            status: any;
+        }[];
+        message: string;
+        candidatesInvited?: undefined;
+        offersDispatchedCount?: undefined;
+        recipients?: undefined;
+    } | {
+        action: string;
+        targetQuota: number;
+        offersDispatchedCount: number;
+        recipients: any[];
+        message: string;
+        candidatesInvited?: undefined;
+        totalQualified?: undefined;
+        shortlist?: undefined;
     }>;
 }

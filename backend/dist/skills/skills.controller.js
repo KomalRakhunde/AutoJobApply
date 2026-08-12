@@ -15,7 +15,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SkillsController = void 0;
 const common_1 = require("@nestjs/common");
 const skills_service_1 = require("./skills.service");
-const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 const create_skill_dto_1 = require("./dto/create-skill.dto");
 const update_skill_dto_1 = require("./dto/update-skill.dto");
 let SkillsController = class SkillsController {
@@ -25,6 +24,9 @@ let SkillsController = class SkillsController {
     }
     create(userId, dto) {
         return this.skillsService.create(userId, dto);
+    }
+    syncSkills(userId, skills) {
+        return this.skillsService.syncUserSkills(userId, Array.isArray(skills) ? skills : []);
     }
     findAll(userId) {
         return this.skillsService.findAll(userId);
@@ -45,6 +47,14 @@ __decorate([
     __metadata("design:paramtypes", [String, create_skill_dto_1.CreateSkillDto]),
     __metadata("design:returntype", void 0)
 ], SkillsController.prototype, "create", null);
+__decorate([
+    (0, common_1.Post)(':userId/sync'),
+    __param(0, (0, common_1.Param)('userId')),
+    __param(1, (0, common_1.Body)('skills')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Array]),
+    __metadata("design:returntype", void 0)
+], SkillsController.prototype, "syncSkills", null);
 __decorate([
     (0, common_1.Get)(':userId'),
     __param(0, (0, common_1.Param)('userId')),
@@ -69,7 +79,6 @@ __decorate([
 ], SkillsController.prototype, "remove", null);
 exports.SkillsController = SkillsController = __decorate([
     (0, common_1.Controller)('skills'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [skills_service_1.SkillsService])
 ], SkillsController);
 //# sourceMappingURL=skills.controller.js.map

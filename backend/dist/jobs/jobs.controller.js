@@ -26,8 +26,19 @@ let JobsController = class JobsController {
     create(dto) {
         return this.jobsService.create(dto);
     }
-    findAll() {
-        return this.jobsService.findAll();
+    findAll(req) {
+        const userId = req.user?.userId || req.user?.id || req.user?.sub;
+        return this.jobsService.findAll(userId);
+    }
+    findAllPublicPool() {
+        return this.jobsService.findAllPublicPool();
+    }
+    getRecommended(req) {
+        const userId = req.user?.userId || req.user?.id || req.user?.sub;
+        return this.jobsService.getRecommendedJobsForStudent(userId);
+    }
+    syncPublicJobs(url) {
+        return this.jobsService.syncPublicJobs(url);
     }
     update(id, dto) {
         return this.jobsService.update(id, dto);
@@ -39,6 +50,7 @@ let JobsController = class JobsController {
 exports.JobsController = JobsController;
 __decorate([
     (0, common_1.Post)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_job_dto_1.CreateJobDto]),
@@ -46,12 +58,36 @@ __decorate([
 ], JobsController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], JobsController.prototype, "findAll", null);
 __decorate([
+    (0, common_1.Get)('pool'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], JobsController.prototype, "findAllPublicPool", null);
+__decorate([
+    (0, common_1.Get)('recommended'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], JobsController.prototype, "getRecommended", null);
+__decorate([
+    (0, common_1.Post)('sync-public'),
+    __param(0, (0, common_1.Body)('url')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], JobsController.prototype, "syncPublicJobs", null);
+__decorate([
     (0, common_1.Patch)(':id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -60,6 +96,7 @@ __decorate([
 ], JobsController.prototype, "update", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -67,7 +104,6 @@ __decorate([
 ], JobsController.prototype, "remove", null);
 exports.JobsController = JobsController = __decorate([
     (0, common_1.Controller)('jobs'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [jobs_service_1.JobsService])
 ], JobsController);
 //# sourceMappingURL=jobs.controller.js.map

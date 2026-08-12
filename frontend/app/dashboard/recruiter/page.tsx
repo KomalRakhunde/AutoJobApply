@@ -49,6 +49,7 @@ import {
   fetchJobCandidates,
   deleteCandidateData,
   createAutomatedSelectionEmail,
+  executePipelineAction,
   RecruiterJob,
   RecruiterCandidate,
 } from '@/services/recruiter/recruiter-api';
@@ -89,6 +90,22 @@ export default function RecruiterDashboardPage() {
   const [scheduleCandidate, setScheduleCandidate] = useState<RecruiterCandidate | null>(null);
   const [aiJdOpen, setAiJdOpen] = useState(false);
   const [triggeringId, setTriggeringId] = useState<string | null>(null);
+  const [executingAction, setExecutingAction] = useState<string | null>(null);
+  const [actionResult, setActionResult] = useState<any>(null);
+
+  const handlePipelineAction = async (action: 'TRIGGER_ROUND_TWO' | 'RANKED_SHORTLIST' | 'DISPATCH_AUTO_OFFERS') => {
+    if (!selectedJobId) return;
+    setExecutingAction(action);
+    try {
+      const res = await executePipelineAction(selectedJobId, action);
+      setActionResult(res);
+      loadJobsAndCandidates();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setExecutingAction(null);
+    }
+  };
 
   // Keep active tab in sync with URL search parameters (Next.js useSearchParams)
   useEffect(() => {
@@ -101,19 +118,16 @@ export default function RecruiterDashboardPage() {
       const fetchedJobs = await fetchRecruiterJobs();
       setJobs(fetchedJobs);
 
-      if (fetchedJobs && fetchedJobs.length > 0) {
-        const targetJobId = fetchedJobs.find((j) => j.id === selectedJobId)?.id || fetchedJobs[0]?.id || '';
+      const targetJobId = (fetchedJobs && fetchedJobs.length > 0)
+        ? (fetchedJobs.find((j) => j.id === selectedJobId)?.id || fetchedJobs[0]?.id || '')
+        : (selectedJobId || 'job-1');
+
+      if (targetJobId) {
         setSelectedJobId(targetJobId);
-        if (targetJobId) {
-          const candidateList = await fetchJobCandidates(targetJobId);
-          setCandidates(candidateList || []);
-        } else {
-          setCandidates([]);
-        }
-      } else {
-        setSelectedJobId('');
-        setCandidates([]);
       }
+      
+      const candidateList = await fetchJobCandidates(targetJobId || 'job-1');
+      setCandidates(candidateList || []);
     } catch (err) {
       console.error('Error loading jobs and candidates', err);
     } finally {
@@ -240,6 +254,77 @@ export default function RecruiterDashboardPage() {
         {/* VIEW 1: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-fade-in font-mono">
+            {/* AUTONOMOUS AI HIRING GOAL & MULTI-PATH PIPELINE COMMAND BAR */}
+            <Card className="rounded-3xl border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-r from-indigo-900/90 via-purple-900/80 to-slate-900 p-6 text-white shadow-xl space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-indigo-500/30 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-indigo-500 text-white font-bold text-[10px] tracking-widest uppercase">
+                      ⚡ AUTONOMOUS RECRUITER ENGINE
+                    </Badge>
+                    <span className="text-xs text-indigo-300 font-mono">Active Target Quota</span>
+                  </div>
+                  <h2 className="text-lg md:text-xl font-black tracking-tight flex items-center gap-2">
+                    <span>Hiring Goal: {activeJob?.targetHeadcount || 10} {activeJob?.title || 'Interns'}</span>
+                  </h2>
+                  <p className="text-xs text-indigo-200 max-w-2xl leading-relaxed">
+                    AI parses incoming resumes, scores ATS fit, auto-triggers outreach & interview links, conducts AI voice screening, and executes your multi-path post-interview commands.
+                  </p>
+                </div>
+
+                <div className="bg-slate-950/60 backdrop-blur-md rounded-2xl p-4 border border-indigo-500/40 min-w-[240px] space-y-2">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-slate-300">Quota Fulfillment</span>
+                    <span className="text-emerald-400 font-extrabold">{qualifiedCandidates.length} / {activeJob?.targetHeadcount || 10} Hires</span>
+                  </div>
+                  <Progress value={Math.min(100, Math.round((qualifiedCandidates.length / (activeJob?.targetHeadcount || 10)) * 100))} className="h-2.5 bg-slate-800" />
+                  <p className="text-[10px] text-indigo-300 text-right">
+                    {Math.max(0, (activeJob?.targetHeadcount || 10) - qualifiedCandidates.length)} quota slot(s) remaining
+                  </p>
+                </div>
+              </div>
+
+              {/* 3 Autonomous Pipeline Command Execution Buttons */}
+              <div className="pt-1 flex flex-wrap items-center justify-between gap-3">
+                <div className="text-xs font-extrabold text-indigo-200 flex items-center gap-1.5">
+                  <Zap className="h-4 w-4 text-amber-400 animate-pulse" />
+                  <span>Execute Next Step Command:</span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Button
+                    size="sm"
+                    disabled={executingAction === 'TRIGGER_ROUND_TWO'}
+                    onClick={() => handlePipelineAction('TRIGGER_ROUND_TWO')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs gap-1.5 font-bold shadow-md"
+                  >
+                    <Mic className="h-3.5 w-3.5" />
+                    <span>Auto-Schedule Round 2</span>
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    disabled={executingAction === 'RANKED_SHORTLIST'}
+                    onClick={() => handlePipelineAction('RANKED_SHORTLIST')}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs gap-1.5 font-bold shadow-md"
+                  >
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    <span>Generate Ranked Shortlist ({activeJob?.targetHeadcount || 10})</span>
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    disabled={executingAction === 'DISPATCH_AUTO_OFFERS'}
+                    onClick={() => handlePipelineAction('DISPATCH_AUTO_OFFERS')}
+                    className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs gap-1.5 font-bold shadow-md"
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    <span>Dispatch Auto Offers (Fill Quota)</span>
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
             {/* 4 Clean Top Metric Cards with Left Accent & Hover Glow */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="rounded-2xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-indigo-500 bg-white dark:bg-[#0f111a] bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent p-5 space-y-2 shadow-sm dark:shadow-xl hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300">
@@ -962,15 +1047,13 @@ export default function RecruiterDashboardPage() {
           onJobCreated={() => loadJobsAndCandidates()}
         />
 
-        {activeJob && (
-          <BulkResumeUploadDialog
-            open={uploadOpen}
-            onOpenChange={setUploadOpen}
-            jobId={activeJob.id}
-            jobTitle={activeJob.title}
-            onUploadSuccess={() => loadJobsAndCandidates()}
-          />
-        )}
+        <BulkResumeUploadDialog
+          open={uploadOpen}
+          onOpenChange={setUploadOpen}
+          jobId={activeJob?.id || jobs[0]?.id || 'job-1'}
+          jobTitle={activeJob?.title || 'General Recruitment Requisition'}
+          onUploadSuccess={() => loadJobsAndCandidates()}
+        />
 
         {offerModalCandidate && (
           <OfferLetterDialog
@@ -1013,6 +1096,89 @@ export default function RecruiterDashboardPage() {
             setCreateJobOpen(true);
           }}
         />
+
+        {/* PIPELINE ACTION EXECUTION RESULT MODAL */}
+        {actionResult && (
+          <Card className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto animate-scale-in font-mono">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-md">
+                    <Zap className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                      Autonomous Pipeline Action Executed
+                    </h3>
+                    <p className="text-xs text-slate-500">Command Result for {activeJob?.title || 'Role'}</p>
+                  </div>
+                </div>
+                <Badge className="bg-emerald-500 text-white font-bold text-xs gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> SUCCESS
+                </Badge>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 space-y-2 text-xs">
+                <p className="font-bold text-slate-900 dark:text-white text-sm">{actionResult.message}</p>
+                {actionResult.targetQuota && (
+                  <p className="text-indigo-600 dark:text-indigo-400 font-bold">Target Quota Goal: {actionResult.targetQuota} Hires</p>
+                )}
+              </div>
+
+              {actionResult.shortlist && (
+                <div className="space-y-2">
+                  <h4 className="font-extrabold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-wider">Top Ranked Shortlist</h4>
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 border rounded-2xl overflow-hidden text-xs">
+                    {actionResult.shortlist.map((item: any) => (
+                      <div key={item.rank} className="p-3 flex items-center justify-between bg-white dark:bg-slate-900">
+                        <div className="flex items-center gap-3">
+                          <span className="h-6 w-6 rounded-full bg-indigo-100 text-indigo-700 font-black text-[11px] flex items-center justify-center">
+                            #{item.rank}
+                          </span>
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-white">{item.name}</p>
+                            <p className="text-[11px] text-slate-400">{item.email}</p>
+                          </div>
+                        </div>
+                        <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold">
+                          {item.score}% ATS
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {actionResult.recipients && (
+                <div className="space-y-2">
+                  <h4 className="font-extrabold text-xs text-slate-700 dark:text-slate-300 uppercase tracking-wider">Offer Letter Recipients</h4>
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 border rounded-2xl overflow-hidden text-xs">
+                    {actionResult.recipients.map((rec: any, i: number) => (
+                      <div key={i} className="p-3 flex items-center justify-between bg-white dark:bg-slate-900">
+                        <div>
+                          <p className="font-bold text-slate-900 dark:text-white">{rec.name}</p>
+                          <p className="text-[11px] text-slate-400">{rec.email}</p>
+                        </div>
+                        <Badge className="bg-purple-600 text-white font-bold text-[10px]">
+                          OFFER DISPATCHED
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-2 flex justify-end">
+                <Button
+                  onClick={() => setActionResult(null)}
+                  className="bg-indigo-600 text-white rounded-xl text-xs font-bold"
+                >
+                  Done & Close
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
     </PageShell>
   );

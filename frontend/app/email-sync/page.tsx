@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { PageShell } from '@/components/layout/page-shell';
+import { CandidateJourneyStepper } from '@/components/layout/candidate-journey-stepper';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -94,6 +95,7 @@ export default function EmailSyncPage() {
   return (
     <PageShell title="" subtitle="">
       <div className="max-w-6xl mx-auto space-y-6 pb-16 animate-fade-in px-2 sm:px-4 font-sans text-sm">
+        
         {/* Page Header */}
         <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 pb-4">
           <div>

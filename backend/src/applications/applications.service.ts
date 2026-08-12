@@ -1,155 +1,100 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
 
 @Injectable()
 export class ApplicationsService {
+  private readonly logger = new Logger(ApplicationsService.name);
+
   constructor(private prisma: PrismaService) {}
 
-  private demoApps = [
-    {
-      id: 'app-1',
-      userId: 'user-1',
-      jobId: 'job-1',
-      status: 'applied',
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date().toISOString(),
-      job: {
-        id: 'job-1',
-        title: 'Full Stack Engineer',
-        company: 'TechCorp Solutions',
-        location: 'Remote',
-        salary: '$110,000 - $130,000',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    },
-    {
-      id: 'app-2',
-      userId: 'user-1',
-      jobId: 'job-2',
-      status: 'interview',
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date().toISOString(),
-      job: {
-        id: 'job-2',
-        title: 'Frontend React Developer',
-        company: 'InnovateAI',
-        location: 'San Francisco, CA',
-        salary: '$120,000 - $140,000',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    },
-    {
-      id: 'app-3',
-      userId: 'user-1',
-      jobId: 'job-3',
-      status: 'assessment',
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date().toISOString(),
-      job: {
-        id: 'job-3',
-        title: 'Software Engineer - AI Systems',
-        company: 'DataPulse AI',
-        location: 'Hybrid',
-        salary: '$130,000 - $150,000',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    },
-  ];
-
   async create(userId: string, dto: CreateApplicationDto) {
-    try {
-      return await this.prisma.application.create({
-        data: {
-          userId,
-          ...dto,
-        },
-      });
-    } catch {
-      const newApp = {
-        id: `app-${Date.now()}`,
-        userId: userId || 'user-1',
-        jobId: dto.jobId || 'job-1',
-        status: (dto as any).status || 'applied',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        job: {
-          id: dto.jobId || 'job-1',
-          title: 'Full Stack Engineer',
-          company: 'Applied Tech',
-          location: 'Remote',
-          salary: '$120,000',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      };
-      this.demoApps.unshift(newApp as any);
-      return newApp;
-    }
-  }
+    let targetResumeId = dto.resumeId;
 
-  async findAll(userId?: string) {
-    try {
-      const list = await this.prisma.application.findMany({
-        where: userId ? { userId } : undefined,
-        include: {
-          job: true,
-          resume: true,
-        },
-        orderBy: {
-          appliedAt: 'desc',
-        },
-      });
-      if (list && list.length > 0) return list;
-      return this.demoApps;
-    } catch {
-      return this.demoApps;
-    }
-  }
-
-  async update(id: string, dto: UpdateApplicationDto) {
-    try {
-      const application = await this.prisma.application.findUnique({
-        where: { id },
-      });
-
-      if (application) {
-        return await this.prisma.application.update({
-          where: { id },
-          data: dto,
+    if (!targetResumeId && userId) {
+      try {
+        const primaryResume = await this.prisma.resume.findFirst({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
         });
+        if (primaryResume) {
+          targetResumeId = primaryResume.id;
+        }
+      } catch (err) {
+        this.logger.warn(`Could not locate resume for user ${userId}`);
       }
-    } catch {}
-
-    const found = this.demoApps.find((a) => a.id === id);
-    if (found) {
-      found.status = dto.status || found.status;
-      found.updatedAt = new Date().toISOString();
-      return found;
     }
 
+    const application = await this.prisma.application.create({
+      data: {
+        userId,
+        jobId: dto.jobId,
+        resumeId: targetResumeId || null,
+        status: 'applied',
+      },
+      include: {
+        job: true,
+        resume: true,
+      },
+    });
+
+    this.logger.log(`[Production Application] Dispatched candidate resume packet for User ${userId} to Job ${dto.jobId}`);
     return {
-      id,
-      userId: 'user-1',
-      jobId: 'job-1',
-      status: dto.status || 'applied',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      ...application,
+      status: application.status.toLowerCase(),
     };
   }
 
-  async remove(id: string) {
-    try {
-      await this.prisma.application.delete({
-        where: { id },
-      });
-    } catch {}
+  async bulkApply(userId: string, jobIds: string[], resumeId?: string) {
+    const results = [];
+    for (const jobId of jobIds) {
+      const app = await this.create(userId, { jobId, resumeId } as any);
+      results.push(app);
+    }
+    return {
+      message: `Successfully dispatched ATS resume packet to ${results.length} job requisitions!`,
+      appliedCount: results.length,
+      applications: results,
+    };
+  }
 
-    this.demoApps = this.demoApps.filter((a) => a.id !== id);
+  async findAll(userId?: string) {
+    const apps = await this.prisma.application.findMany({
+      where: userId ? { userId } : undefined,
+      include: {
+        job: true,
+        resume: true,
+      },
+      orderBy: {
+        appliedAt: 'desc',
+      },
+    });
+    return apps.map((app) => ({
+      ...app,
+      status: (app.status || 'applied').toLowerCase(),
+    }));
+  }
+
+  async update(id: string, dto: UpdateApplicationDto) {
+    const application = await this.prisma.application.findUnique({
+      where: { id },
+    });
+
+    if (!application) {
+      throw new NotFoundException('Application not found');
+    }
+
+    return this.prisma.application.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  async remove(id: string) {
+    await this.prisma.application.delete({
+      where: { id },
+    });
 
     return {
       message: 'Application deleted successfully',

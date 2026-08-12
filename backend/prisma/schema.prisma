@@ -229,8 +229,15 @@ model JobPosting {
   description      String
   requirements     String
   passingThreshold Int      @default(70)
+  targetHeadcount  Int      @default(10)
   autoInterviewEnabled Boolean @default(false)
+  autoOfferEnabled     Boolean @default(false)
   maxInterviewDurationSeconds Int @default(600)
+  nextStepType     String?  @default("Interview")
+  nextStepDescription String? @default("AI Technical Voice Screening")
+  nextStepLink     String?
+  nextStepDate     String?  @default("Next Tuesday")
+  nextStepTime     String?  @default("10:00 AM EST")
   status           String   @default("OPEN")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -356,16 +363,25 @@ model CallTranscript {
 }
 
 model OutreachLog {
-  id           String   @id @default(uuid())
-  candidateId  String
-  channel      String   @default("EMAIL")
-  status       String   @default("Contacted")
-  templateUsed String?
-  messageBody  String?
-  sentAt       DateTime @default(now())
+  id             String    @id @default(uuid())
+  candidateId    String
+  emailType      String    @default("SHORTLISTED")
+  channel        String    @default("EMAIL")
+  status         String    @default("PENDING")
+  emailMessageId String?
+  recipientEmail String?
+  subject        String?
+  messageBody    String?
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  failedAt       DateTime?
+  error          String?
+  templateUsed   String?
+  createdAt      DateTime  @default(now())
 
   candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
+  @@unique([candidateId, emailType])
   @@map("outreach_logs")
 }
 
