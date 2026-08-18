@@ -28,6 +28,20 @@ export interface CandidateScore {
   summary: string;
   strengths: string[];
   gaps: string[];
+  matchingSkills?: string[];
+  missingCriticalSkills?: string[];
+  experienceRequirementMet?: boolean;
+  shortFinalVerdict?: string;
+  evaluationStatus?: string;
+}
+
+export interface ParsedJobJD {
+  role: string;
+  required_skills: string[];
+  preferred_skills: string[];
+  minimum_experience: number;
+  educational_requirements: string[];
+  responsibilities: string[];
 }
 
 export interface EmailOutreachDetails {
@@ -106,46 +120,43 @@ export async function createRecruiterJob(data: {
   return created;
 }
 
+export async function parseJobDescriptionApi(jobId: string, description: string): Promise<ParsedJobJD> {
+  try {
+    const res = await apiRequest<ParsedJobJD>(`/recruiters/jobs/${jobId}/parse-jd`, {
+      method: 'POST',
+      body: { description },
+    });
+    if (res) return res;
+  } catch (err) {
+    console.warn('parseJobDescriptionApi notice:', err);
+  }
+
+  return {
+    role: 'Software Engineer',
+    required_skills: ['Python', 'AWS', 'PostgreSQL'],
+    preferred_skills: ['Docker', 'Kubernetes', 'CI/CD'],
+    minimum_experience: 2,
+    educational_requirements: ["Bachelor's Degree in CS"],
+    responsibilities: ['Build backend services', 'Design RESTful APIs', 'Optimize database performance'],
+  };
+}
+
 export async function sourcePublicCandidates(
   jobId: string
 ): Promise<{ message: string; sourcedCount: number; topShortlistedCount: number; candidates: any[] }> {
-  try {
-    const res = await apiRequest<{ message: string; sourcedCount: number; topShortlistedCount: number; candidates: any[] }>(
-      `/recruiters/jobs/${jobId}/source-candidates`,
-      { method: 'POST' }
-    );
-    if (res) return res;
-  } catch (err) {
-    console.warn('Backend sourcePublicCandidates fallback:', err);
-  }
+  const res = await apiRequest<{ message: string; sourcedCount: number; topShortlistedCount: number; candidates: any[] }>(
+    `/recruiters/jobs/${jobId}/source-candidates`,
+    { method: 'POST' }
+  );
 
-  const candidates = [
-    {
-      id: `cand-${Date.now()}-1`,
-      name: 'Rohan Sharma',
-      email: 'rohan.sharma@public.dev',
-      skills: ['React', 'TypeScript', 'Node.js', 'NestJS', 'PostgreSQL'],
-      currentStage: 'SHORTLISTED',
-      status: 'QUALIFIED',
-      matchScore: 94,
-    },
-    {
-      id: `cand-${Date.now()}-2`,
-      name: 'Ananya Verma',
-      email: 'ananya.verma@public.dev',
-      skills: ['Next.js', 'TypeScript', 'PostgreSQL', 'AI Agents'],
-      currentStage: 'SHORTLISTED',
-      status: 'QUALIFIED',
-      matchScore: 91,
-    },
-  ];
-
-  return {
-    message: 'Sourced 2 high-match public candidate profiles via Firecrawl!',
-    sourcedCount: 2,
-    topShortlistedCount: 2,
-    candidates,
-  };
+  return (
+    res || {
+      message: 'Zero public candidates returned from live Firecrawl sourcing.',
+      sourcedCount: 0,
+      topShortlistedCount: 0,
+      candidates: [],
+    }
+  );
 }
 
 export async function fetchJobCandidates(

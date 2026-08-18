@@ -12,19 +12,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+  const origin = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || new URL(request.url).origin;
   const redirectUri = `${origin}/api/auth/callback/linkedin`;
   const linkedinClientId = process.env.LINKEDIN_CLIENT_ID;
 
-  if (linkedinClientId) {
-    const scope = encodeURIComponent('openid profile email');
-    const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${linkedinClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${encodeURIComponent(role)}&prompt=select_account`;
-    return NextResponse.redirect(authUrl);
+  if (!linkedinClientId || linkedinClientId === 'your_linkedin_client_id') {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set(
+      'error',
+      'LinkedIn OAuth is not configured in environment variables. Please set LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET in .env',
+    );
+    return NextResponse.redirect(loginUrl);
   }
 
-  const callbackUrl = new URL(`/api/auth/callback/linkedin`, request.url);
-  callbackUrl.searchParams.set('role', role);
-  callbackUrl.searchParams.set('prompt', 'select_account');
-  callbackUrl.searchParams.set('code', randomBytes(16).toString('hex'));
-  return NextResponse.redirect(callbackUrl);
+  const scope = encodeURIComponent('openid profile email');
+  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${linkedinClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${encodeURIComponent(role)}&prompt=select_account`;
+  return NextResponse.redirect(authUrl);
 }

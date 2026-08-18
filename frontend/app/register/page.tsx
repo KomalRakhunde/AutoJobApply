@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +40,7 @@ const ROLES_LIST: { id: UserRole; label: string }[] = [
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const register = useRegister();
@@ -55,6 +56,18 @@ export default function RegisterPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'linkedin' | 'microsoft' | null>(null);
+
+  useEffect(() => {
+    const errorParam = searchParams?.get('error');
+    if (errorParam) {
+      setError(errorParam);
+      toast({
+        title: 'Authentication Notice',
+        description: errorParam,
+        variant: 'destructive',
+      });
+    }
+  }, [searchParams, toast]);
 
   const update = (key: keyof typeof form, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -151,8 +164,21 @@ export default function RegisterPage() {
       router.push(targetPath);
       return;
     } catch (err: any) {
-      if (err?.status === 409 || err?.message?.includes('already exists') || err?.message?.includes('409')) {
-        const errorMsg = 'An account with this email address already exists. Please sign in or use a different email.';
+      const errMsg =
+        (typeof err?.data === 'object' && err?.data?.message) ||
+        (typeof err?.data === 'string' && err?.data) ||
+        err?.message ||
+        '';
+
+      const isAlreadyExists =
+        err?.status === 409 ||
+        (typeof errMsg === 'string' && errMsg.toLowerCase().includes('already exists'));
+
+      if (isAlreadyExists) {
+        const errorMsg =
+          typeof errMsg === 'string' && errMsg.length > 5
+            ? errMsg
+            : 'An account with this email address already exists. Please sign in or use a different email.';
         setError(errorMsg);
         toast({
           title: 'Account Already Exists',
@@ -162,20 +188,24 @@ export default function RegisterPage() {
         return;
       }
 
-      const errMsg = err?.data?.message || err?.message || '';
       const isNetworkError =
         !err?.status ||
-        errMsg.toLowerCase().includes('failed to fetch') ||
-        errMsg.toLowerCase().includes('network') ||
+        (typeof errMsg === 'string' &&
+          (errMsg.toLowerCase().includes('failed to fetch') ||
+            errMsg.toLowerCase().includes('network'))) ||
         err?.status === 404 ||
         err?.status === 502 ||
         err?.status === 503;
 
       if (!isNetworkError) {
-        setError(errMsg || 'Registration failed');
+        const displayMsg =
+          typeof errMsg === 'string' && errMsg
+            ? errMsg
+            : 'Registration failed due to invalid input.';
+        setError(displayMsg);
         toast({
           title: 'Registration Failed',
-          description: errMsg || 'Registration failed',
+          description: displayMsg,
           variant: 'destructive',
         });
         return;

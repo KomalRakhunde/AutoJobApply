@@ -35,6 +35,14 @@ export class RecruitersController {
     return this.recruitersService.getJobPostingById(id);
   }
 
+  @Post('jobs/:id/parse-jd')
+  async parseJobDescription(
+    @Param('id') id: string,
+    @Body('description') description?: string,
+  ) {
+    return this.recruitersService.parseAndSaveJobDescription(id, description);
+  }
+
   @Post('jobs/:id/source-candidates')
   async sourceCandidatesForJob(@Param('id') id: string) {
     return this.sourcingService.sourcePublicCandidates(id);

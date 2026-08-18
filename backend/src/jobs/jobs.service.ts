@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FirecrawlService, ScrapedJob } from '../automation/firecrawl.service';
+import { FallbackScraperProvider } from '../automation/fallback-scraper.provider';
 import { AdapterRegistryService } from '../automation/adapters/adapter-registry.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
@@ -86,6 +87,13 @@ function hasSkillInText(text: string, aliasKey: string): boolean {
   return regex.test(text);
 }
 
+export interface MatchBreakdown {
+  skillScore: number;
+  experienceScore: number;
+  locationScore: number;
+  salaryScore: number | null;
+}
+
 export interface UserJobMatchResult {
   job: any;
   matchScore: number;
@@ -94,6 +102,57 @@ export interface UserJobMatchResult {
   missingSkills: string[];
   reasons: string[];
   rejectionReasons: string[];
+  matchBreakdown: MatchBreakdown;
+}
+
+function parseSalaryToAnnualNumeric(input?: string | null): number | null {
+  if (!input || typeof input !== 'string') return null;
+  const str = input.trim().toLowerCase();
+  if (!str) return null;
+
+  const isMonthly = str.includes('monthly') || str.includes('/mo') || str.includes('per month');
+  const isLpa = str.includes('lpa') || str.includes('lakh');
+
+  const matches = str.match(/\d+(?:,\d+)*(?:\.\d+)?\s*k?/gi);
+  if (!matches || matches.length === 0) return null;
+
+  const parsedVals: number[] = [];
+  for (const m of matches) {
+    const raw = m.replace(/,/g, '').trim().toLowerCase();
+    let num = 0;
+    if (raw.endsWith('k')) {
+      num = parseFloat(raw.replace('k', '')) * 1000;
+    } else {
+      num = parseFloat(raw);
+    }
+    if (!isNaN(num) && num > 0) {
+      if (isLpa) {
+        num = num * 100000;
+      } else if (isMonthly) {
+        num = num * 12;
+      }
+      parsedVals.push(num);
+    }
+  }
+
+  if (parsedVals.length === 0) return null;
+  const sum = parsedVals.reduce((acc, val) => acc + val, 0);
+  return Math.round(sum / parsedVals.length);
+}
+
+function calculateSalaryScore(expectedSalaryStr?: string | null, jobSalaryStr?: string | null): number | null {
+  const expected = parseSalaryToAnnualNumeric(expectedSalaryStr);
+  const jobSal = parseSalaryToAnnualNumeric(jobSalaryStr);
+
+  if (expected === null || jobSal === null || expected <= 0 || jobSal <= 0) {
+    return null;
+  }
+
+  if (jobSal >= expected) {
+    return 100;
+  }
+
+  return Math.max(0, Math.round((jobSal / expected) * 100));
 }
 
 @Injectable()
@@ -103,6 +162,7 @@ export class JobsService {
   constructor(
     private prisma: PrismaService,
     private firecrawlService: FirecrawlService,
+    private fallbackScraperProvider: FallbackScraperProvider,
     private adapterRegistryService: AdapterRegistryService,
   ) {}
 
@@ -138,6 +198,7 @@ export class JobsService {
         matchLevel: m.matchLevel,
         matchedSkills: m.matchedSkills,
         reasons: m.reasons,
+        matchBreakdown: m.matchBreakdown,
       }));
     }
     return this.findAllPublicPool();
@@ -154,9 +215,15 @@ export class JobsService {
     if (targetUrl) {
       this.logger.log(`[Production Jobs] Scrape triggered for target URL: ${targetUrl}`);
       scrapedJobs = await this.firecrawlService.scrapePublicJobs(targetUrl);
+      if (scrapedJobs.length === 0) {
+        this.logger.warn(
+          `[Production Jobs] Target URL ${targetUrl} returned zero jobs. Falling back to primary adapter.`,
+        );
+        scrapedJobs = await this.adapterRegistryService.fetchJobsFromPrimary(this.fallbackScraperProvider);
+      }
     } else {
       this.logger.log('[Production Jobs] Executing Primary Permitted Source Adapter for Full Stack Engineering');
-      scrapedJobs = await this.adapterRegistryService.fetchJobsFromPrimary(this.firecrawlService);
+      scrapedJobs = await this.adapterRegistryService.fetchJobsFromPrimary(this.fallbackScraperProvider);
     }
 
     // Clean legacy fake placeholders if present
@@ -320,7 +387,7 @@ export class JobsService {
       'head of finance',
     ];
 
-    const MATCH_THRESHOLD = 65;
+    const MATCH_THRESHOLD = candidateSkillsArray.length === 0 ? 45 : 65;
     const matchedResults: UserJobMatchResult[] = [];
 
     for (const job of jobs) {
@@ -375,13 +442,13 @@ export class JobsService {
         }
       }
 
-      let skillScore = 0;
-      if (candidateSkillsArray.length === 0) {
-        skillScore = 0;
-      } else if (jobSkillsArray.length > 0) {
-        skillScore = Math.min(100, Math.round((matchedSkills.length / jobSkillsArray.length) * 100));
-      } else {
-        skillScore = 0; // Fix: 0 if no skills detected in job text
+      let skillScore = 70; // Baseline neutral score for unpopulated candidate profile
+      if (candidateSkillsArray.length > 0) {
+        if (jobSkillsArray.length > 0) {
+          skillScore = Math.min(100, Math.round((matchedSkills.length / jobSkillsArray.length) * 100));
+        } else {
+          skillScore = 60;
+        }
       }
 
       // FACTOR 2: Target Role / Title Match (15%)
@@ -402,7 +469,7 @@ export class JobsService {
       }
 
       // FACTOR 4: Job-Specific Resume Overlap (15%)
-      let resumeScore = 0;
+      let resumeScore = 70; // Baseline neutral score for unpopulated candidate profile
       if (userResumes.length > 0) {
         let resumeMatchesCount = 0;
         for (const skill of jobSkillsArray) {
@@ -411,8 +478,6 @@ export class JobsService {
         resumeScore = jobSkillsArray.length > 0
           ? Math.min(100, Math.round((resumeMatchesCount / jobSkillsArray.length) * 100))
           : 70;
-      } else {
-        resumeScore = 0; // Missing data remains 0
       }
 
       // FACTOR 5: Experience Years Compatibility (10%)
@@ -424,7 +489,7 @@ export class JobsService {
       let experienceScore = 70;
       if (reqYears > 0) {
         if (totalExperienceYears >= reqYears) experienceScore = 100;
-        else if (totalExperienceYears === 0) experienceScore = 15;
+        else if (totalExperienceYears === 0) experienceScore = 50;
         else experienceScore = Math.round((totalExperienceYears / reqYears) * 75);
       }
 
@@ -497,7 +562,9 @@ export class JobsService {
       let matchLevel = 'Relevant';
       if (matchScore >= 85) matchLevel = 'Excellent Match';
       else if (matchScore >= 75) matchLevel = 'Strong Match';
-      else if (matchScore >= 65) matchLevel = 'Relevant';
+      else if (matchScore >= 60) matchLevel = 'Relevant';
+
+      const salaryScore = calculateSalaryScore(profile?.expectedSalary, job.salary);
 
       if (matchScore >= MATCH_THRESHOLD) {
         matchedResults.push({
@@ -508,12 +575,22 @@ export class JobsService {
           missingSkills,
           reasons: reasons.length > 0 ? reasons : ['Matches technology and target role preferences'],
           rejectionReasons,
+          matchBreakdown: {
+            skillScore,
+            experienceScore,
+            locationScore,
+            salaryScore,
+          },
         });
       } else {
         this.logger.debug(
           `[JobsMatching] Job "${job.title}" at "${job.company}" filtered out (Score: ${matchScore} below threshold ${MATCH_THRESHOLD})`,
         );
       }
+    }
+
+    if (matchedResults.length === 0) {
+      this.logger.log('[JobsMatching] Zero jobs matched threshold for candidate profile. Returning empty matching set.');
     }
 
     return matchedResults.sort((a, b) => b.matchScore - a.matchScore);

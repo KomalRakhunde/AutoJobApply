@@ -50,6 +50,8 @@ import {
   deleteCandidateData,
   createAutomatedSelectionEmail,
   executePipelineAction,
+  parseJobDescriptionApi,
+  ParsedJobJD,
   RecruiterJob,
   RecruiterCandidate,
 } from '@/services/recruiter/recruiter-api';
@@ -92,6 +94,26 @@ export default function RecruiterDashboardPage() {
   const [triggeringId, setTriggeringId] = useState<string | null>(null);
   const [executingAction, setExecutingAction] = useState<string | null>(null);
   const [actionResult, setActionResult] = useState<any>(null);
+
+  // Phase 2 Job Description Parser State
+  const [rawJdText, setRawJdText] = useState<string>(
+    "Software Engineer\n\nWe are looking for a Software Engineer with 2+ years of experience.\n\nRequired:\nPython\nAWS\nPostgreSQL\n\nPreferred:\nDocker\nKubernetes\nCI/CD\n\nResponsibilities:\nBuild backend services\nDesign RESTful APIs"
+  );
+  const [isParsingJd, setIsParsingJd] = useState(false);
+  const [parsedJdResult, setParsedJdResult] = useState<ParsedJobJD | null>(null);
+
+  const handleParseJd = async () => {
+    if (!rawJdText.trim() || !selectedJobId) return;
+    setIsParsingJd(true);
+    try {
+      const res = await parseJobDescriptionApi(selectedJobId, rawJdText);
+      setParsedJdResult(res);
+    } catch (err) {
+      console.error('Error parsing JD', err);
+    } finally {
+      setIsParsingJd(false);
+    }
+  };
 
   const handlePipelineAction = async (action: 'TRIGGER_ROUND_TWO' | 'RANKED_SHORTLIST' | 'DISPATCH_AUTO_OFFERS') => {
     if (!selectedJobId) return;
@@ -379,6 +401,84 @@ export default function RecruiterDashboardPage() {
                 <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400">Target Threshold</p>
               </Card>
             </div>
+
+            {/* PHASE 2 — AI JOB DESCRIPTION PARSER CARD */}
+            <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-purple-500 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-purple-500/10 via-transparent to-transparent p-6 shadow-sm dark:shadow-2xl space-y-4 hover:border-purple-500/50 transition-all duration-300 font-mono">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    <span>Phase 2 — AI Job Description Parser</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Input raw Job Description text to extract structured JobJD JSON (Required vs Preferred Skills, Min Experience, Education, Responsibilities).
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  disabled={isParsingJd}
+                  onClick={handleParseJd}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs gap-1.5 shadow-md shadow-purple-600/20"
+                >
+                  {isParsingJd ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  <span>{isParsingJd ? 'Parsing JD...' : 'Parse Job Description'}</span>
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Raw Job Description Input</label>
+                  <textarea
+                    rows={6}
+                    value={rawJdText}
+                    onChange={(e) => setRawJdText(e.target.value)}
+                    placeholder="Enter Job Description text..."
+                    className="w-full rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#121522] p-3 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Structured JobJD Output</label>
+                  {parsedJdResult ? (
+                    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#121522] p-4 text-xs font-mono space-y-3 max-h-[190px] overflow-y-auto">
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-purple-600 dark:text-purple-400">{parsedJdResult.role}</span>
+                        <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 text-[10px] font-bold">
+                          Min Experience: {parsedJdResult.minimum_experience} yrs
+                        </Badge>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Required Skills:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {parsedJdResult.required_skills.map((s, i) => (
+                            <Badge key={i} className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[9px] font-bold">
+                              {s}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Preferred Skills:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {parsedJdResult.preferred_skills.map((s, i) => (
+                            <Badge key={i} className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 text-[9px] font-bold">
+                              {s}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 p-8 text-center text-slate-400 text-xs flex flex-col items-center justify-center h-[190px]">
+                      <Sparkles className="h-6 w-6 text-purple-400 opacity-60 mb-2" />
+                      <span>Click [Parse Job Description] to see structured JobJD.</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
 
             {/* Clean Candidate Directory Table Card with Left Accent & Glow */}
             <Card className="rounded-3xl border border-slate-200/80 dark:border-slate-800 border-l-4 border-l-indigo-500 bg-white dark:bg-[#0c0e17] bg-gradient-to-r from-indigo-500/10 via-transparent to-transparent overflow-hidden shadow-sm dark:shadow-2xl space-y-3 hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300">

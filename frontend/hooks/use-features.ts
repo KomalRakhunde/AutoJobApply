@@ -123,6 +123,7 @@ export function useJobs() {
                 matchLevel: item.matchLevel,
                 matchedSkills: item.matchedSkills,
                 reasons: item.reasons,
+                matchBreakdown: item.matchBreakdown,
               };
             }
             return item;

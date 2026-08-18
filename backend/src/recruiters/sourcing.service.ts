@@ -54,13 +54,15 @@ export class CandidateSourcingService {
       }
     }
 
-    // Fallback seed public profile URLs for target candidate extraction
+    // Live web candidate URL discovery using FIRECRAWL_API_KEY search engine
     if (targetProfileUrls.length === 0) {
-      targetProfileUrls = [
-        `https://github.com/torvalds`,
-        `https://github.com/gaearon`,
-        `https://github.com/siddharthkp`,
-      ];
+      try {
+        const query = `site:linkedin.com/in OR site:github.com "${roleTitle}" ${requiredSkills.slice(0, 2).join(' ')} ${location}`;
+        this.logger.log(`[Production Sourcing] Executing live Firecrawl search via process.env.FIRECRAWL_API_KEY for query: "${query}"`);
+        targetProfileUrls = await this.firecrawlService.searchWeb(query, 5);
+      } catch (err: any) {
+        this.logger.error(`[Production Sourcing] Live Firecrawl candidate URL search failed: ${err?.message}`);
+      }
     }
 
     const sourcedCandidates = [];

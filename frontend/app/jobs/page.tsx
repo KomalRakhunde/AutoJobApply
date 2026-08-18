@@ -39,8 +39,33 @@ import {
 } from '@/hooks/use-features';
 import type { Job } from '@/types/types';
 import { useToast } from '@/hooks/use-toast';
-
 import { JdAnalyzerDialog } from '@/features/ai/components/jd-analyzer-dialog';
+
+function getJobSourceLabel(applyUrl?: string | null): string {
+  if (!applyUrl || typeof applyUrl !== 'string' || !applyUrl.trim()) {
+    return 'Public Web Feed';
+  }
+  try {
+    const parsed = new URL(applyUrl.trim());
+    const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+
+    if (host.includes('ycombinator.com')) return 'Y Combinator';
+    if (host.includes('remoteok.com') || host.includes('remoteok.io')) return 'RemoteOK';
+    if (host.includes('simplify.jobs')) return 'Simplify';
+    if (host.includes('linkedin.com')) return 'LinkedIn';
+    if (host.includes('naukri.com')) return 'Naukri';
+    if (host.includes('indeed.com')) return 'Indeed';
+    if (host.includes('github.com')) return 'GitHub Jobs';
+    if (host.includes('lever.co')) return 'Lever';
+    if (host.includes('greenhouse.io')) return 'Greenhouse';
+    if (host.includes('workable.com')) return 'Workable';
+    if (host.includes('ashbyhq.com')) return 'Ashby';
+
+    return host.charAt(0).toUpperCase() + host.slice(1);
+  } catch {
+    return 'Public Web Feed';
+  }
+}
 
 export default function JobsPage() {
   const router = useRouter();
@@ -99,10 +124,8 @@ export default function JobsPage() {
 
   const rawJobs: Job[] = Array.isArray(jobs)
     ? [...jobs].sort((a, b) => {
-        const titleA = a.title.toLowerCase();
-        const titleB = b.title.toLowerCase();
-        const scoreA = (a as any).matchScore ?? (titleA.includes('full') || titleA.includes('software') ? 96 : 40);
-        const scoreB = (b as any).matchScore ?? (titleB.includes('full') || titleB.includes('software') ? 96 : 40);
+        const scoreA = (a as any).matchScore ?? 0;
+        const scoreB = (b as any).matchScore ?? 0;
         return scoreB - scoreA;
       })
     : [];
@@ -159,7 +182,7 @@ export default function JobsPage() {
     });
   };
 
-  const handleApply = async (jobId: string) => {
+  const handleApply = async (jobId: string, applyUrl?: string | null) => {
     try {
       await createApplication.mutateAsync({ jobId });
       toast({
@@ -171,6 +194,16 @@ export default function JobsPage() {
         title: '⚡ Application Submitted',
         description: 'Your application has been registered in recruiter pipeline.',
       });
+    }
+
+    const jobObj = rawJobs.find((j) => j.id === jobId);
+    const urlToOpen = applyUrl !== undefined ? applyUrl : jobObj?.applyUrl;
+
+    if (urlToOpen && typeof urlToOpen === 'string') {
+      const trimmedUrl = urlToOpen.trim();
+      if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+        window.open(trimmedUrl, '_blank', 'noopener,noreferrer');
+      }
     }
   };
 
@@ -489,7 +522,7 @@ export default function JobsPage() {
                         </div>
                       </div>
                       <Badge className="bg-[#121522] text-slate-300 border border-slate-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase">
-                        {job.company.length % 2 === 0 ? 'Active Match' : 'Featured'}
+                        {(job as any).matchScore ? `${(job as any).matchScore}% Match` : 'Active Match'}
                       </Badge>
                     </div>
 
@@ -567,7 +600,7 @@ export default function JobsPage() {
                         <span>Tailor Cover Letter &amp; Resume</span>
                       </Button>
                       <Button
-                        onClick={() => handleApply(currentJob.id)}
+                        onClick={() => handleApply(currentJob.id, currentJob.applyUrl)}
                         className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs py-2 px-5 rounded-xl gap-2 shadow-md shadow-blue-500/20"
                       >
                         <span>1-Click Apply</span>
@@ -577,43 +610,53 @@ export default function JobsPage() {
                   </div>
 
                   {/* Source Badge & 4-Factor AI Job Matching Breakdown Card */}
-                  <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-950/30 via-slate-900/40 to-slate-950 p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-indigo-400" />
-                        <span className="font-extrabold text-xs text-white uppercase tracking-wider">4-FACTOR AI MATCH BREAKDOWN</span>
-                      </div>
-                      <Badge className="bg-blue-600 text-white font-extrabold text-[10px] px-2.5 py-0.5 rounded-full">
-                        Source: {currentJob.company.length % 3 === 0 ? 'LinkedIn' : currentJob.company.length % 3 === 1 ? 'Naukri.com' : 'Indeed'}
-                      </Badge>
-                    </div>
+                  {(() => {
+                    const mb = (currentJob as any).matchBreakdown;
+                    const skillText = typeof mb?.skillScore === 'number' ? `${mb.skillScore}%` : 'Not available';
+                    const expText = typeof mb?.experienceScore === 'number' ? `${mb.experienceScore}%` : 'Not available';
+                    const locText = typeof mb?.locationScore === 'number' ? `${mb.locationScore}%` : 'Not available';
+                    const salText = typeof mb?.salaryScore === 'number' ? `${mb.salaryScore}%` : mb?.salaryScore === null ? 'N/A' : 'Not available';
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-sans text-xs pt-1">
-                      {/* Skill Match */}
-                      <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-                        <span className="text-[10px] font-bold text-slate-400 block">SKILL MATCH</span>
-                        <p className="text-sm font-black text-emerald-400">96%</p>
-                      </div>
+                    return (
+                      <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-950/30 via-slate-900/40 to-slate-950 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-indigo-400" />
+                            <span className="font-extrabold text-xs text-white uppercase tracking-wider">4-FACTOR AI MATCH BREAKDOWN</span>
+                          </div>
+                          <Badge className="bg-blue-600 text-white font-extrabold text-[10px] px-2.5 py-0.5 rounded-full">
+                            Source: {getJobSourceLabel(currentJob.applyUrl)}
+                          </Badge>
+                        </div>
 
-                      {/* Experience Match */}
-                      <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-                        <span className="text-[10px] font-bold text-slate-400 block">EXPERIENCE</span>
-                        <p className="text-sm font-black text-indigo-400">92%</p>
-                      </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-sans text-xs pt-1">
+                          {/* Skill Match */}
+                          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                            <span className="text-[10px] font-bold text-slate-400 block">SKILL MATCH</span>
+                            <p className="text-sm font-black text-emerald-400">{skillText}</p>
+                          </div>
 
-                      {/* Salary Match */}
-                      <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-                        <span className="text-[10px] font-bold text-slate-400 block">SALARY MATCH</span>
-                        <p className="text-sm font-black text-blue-400">95%</p>
-                      </div>
+                          {/* Experience Match */}
+                          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                            <span className="text-[10px] font-bold text-slate-400 block">EXPERIENCE</span>
+                            <p className="text-sm font-black text-indigo-400">{expText}</p>
+                          </div>
 
-                      {/* Location Match */}
-                      <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-                        <span className="text-[10px] font-bold text-slate-400 block">LOCATION</span>
-                        <p className="text-sm font-black text-cyan-400">100%</p>
+                          {/* Salary Match */}
+                          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                            <span className="text-[10px] font-bold text-slate-400 block">SALARY MATCH</span>
+                            <p className="text-sm font-black text-blue-400">{salText}</p>
+                          </div>
+
+                          {/* Location Match */}
+                          <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                            <span className="text-[10px] font-bold text-slate-400 block">LOCATION</span>
+                            <p className="text-sm font-black text-cyan-400">{locText}</p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                   {/* 3 Metric Cards */}
                   <div className="grid grid-cols-3 gap-3 font-sans">

@@ -4,6 +4,8 @@ import { FirecrawlService, ScrapedJob } from '../firecrawl.service';
 import { JobExtractorService } from '../job-extractor.service';
 import { JobValidatorService } from '../job-validator.service';
 
+import { IScraperProvider } from '../scraper-provider.interface';
+
 @Injectable()
 export class HnYcJobsAdapter implements JobSourceAdapter {
   private readonly logger = new Logger(HnYcJobsAdapter.name);
@@ -17,11 +19,11 @@ export class HnYcJobsAdapter implements JobSourceAdapter {
     private readonly jobValidator: JobValidatorService,
   ) {}
 
-  async fetchJobs(firecrawlService: FirecrawlService): Promise<ScrapedJob[]> {
+  async fetchJobs(scraperProvider: IScraperProvider): Promise<ScrapedJob[]> {
     this.logger.log(`[Adapter: ${this.sourceName}] Starting extraction from: ${this.permittedUrl}`);
 
     try {
-      const indexMarkdown = await firecrawlService.scrapeUrl(this.permittedUrl);
+      const indexMarkdown = await scraperProvider.scrapeUrl(this.permittedUrl);
       const extractedJobs = await this.jobExtractor.extractJobsFromMarkdown(indexMarkdown, this.permittedUrl);
       const validJobs = this.jobValidator.validateJobs(extractedJobs);
 

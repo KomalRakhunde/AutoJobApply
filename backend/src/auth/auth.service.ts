@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
+  ConflictException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -21,6 +22,15 @@ export class AuthService {
     lastName?: string;
     role?: string;
   }) {
+    if (!data.email || !data.email.trim()) {
+      throw new BadRequestException('Email address is required.');
+    }
+    if (!data.password) {
+      throw new BadRequestException('Password is required.');
+    }
+
+    const normalizedEmail = data.email.trim().toLowerCase();
+
     // Password Strength Server-side Enforcement (Requires min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char)
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
     if (!passwordRegex.test(data.password)) {
@@ -37,7 +47,7 @@ export class AuthService {
         message: 'Registration successful (Demo Mode)',
         user: {
           id: `user-demo-${Date.now()}`,
-          email: data.email,
+          email: normalizedEmail,
           firstName: data.firstName || 'Demo',
           lastName: data.lastName || 'User',
           role: assignedRole,
@@ -48,12 +58,12 @@ export class AuthService {
     try {
       const existingUser = await this.prisma.user.findUnique({
         where: {
-          email: data.email,
+          email: normalizedEmail,
         },
       });
 
       if (existingUser) {
-        throw new BadRequestException(
+        throw new ConflictException(
           'An account with this email address already exists. Please sign in or use a different email.',
         );
       }
@@ -62,7 +72,7 @@ export class AuthService {
 
       const user = await this.prisma.user.create({
         data: {
-          email: data.email,
+          email: normalizedEmail,
           password: hashedPassword,
           firstName: data.firstName,
           lastName: data.lastName,
@@ -82,18 +92,18 @@ export class AuthService {
       };
     } catch (err: any) {
       if (err?.code === 'P2002' || err?.message?.includes('P2002')) {
-        throw new BadRequestException(
+        throw new ConflictException(
           'An account with this email address already exists. Please sign in or use a different email.',
         );
       }
-      if (err instanceof BadRequestException) {
+      if (err instanceof BadRequestException || err instanceof ConflictException) {
         throw err;
       }
       return {
         message: 'Registration successful (Demo Mode)',
         user: {
           id: `user-demo-${Date.now()}`,
-          email: data.email,
+          email: normalizedEmail,
           firstName: data.firstName || 'Demo',
           lastName: data.lastName || 'User',
           role: assignedRole,
@@ -195,8 +205,13 @@ export class AuthService {
     firstName?: string;
     lastName?: string;
     requestedRole?: string;
-    provider: 'google' | 'linkedin';
+    provider: 'google' | 'linkedin' | 'microsoft';
+    providerId?: string;
+    picture?: string;
   }) {
+    if (!data.email || !data.email.trim()) {
+      throw new BadRequestException('Email address is required for OAuth validation.');
+    }
     const normalizedEmail = data.email.trim().toLowerCase();
     const requestedRole = (data.requestedRole || 'student').toLowerCase();
 
@@ -207,6 +222,8 @@ export class AuthService {
         firstName: data.firstName || 'OAuth',
         lastName: data.lastName || 'User',
         role: requestedRole,
+        isNewUser: false,
+        acceptedTermsAt: new Date().toISOString(),
       };
       const token = this.jwtService.sign({
         sub: user.id,
@@ -223,12 +240,14 @@ export class AuthService {
     }
 
     let user: any = null;
+    let isNewUser = false;
     try {
       user = await this.prisma.user.findUnique({
         where: { email: normalizedEmail },
       });
 
       if (!user) {
+        isNewUser = true;
         const randomPassword = await bcrypt.hash(Math.random().toString(36), 10);
         user = await this.prisma.user.create({
           data: {
@@ -239,8 +258,19 @@ export class AuthService {
             role: requestedRole,
           },
         });
+      } else {
+        // Optionally update missing profile names if provided from OAuth
+        if ((!user.firstName && data.firstName) || (!user.lastName && data.lastName)) {
+          user = await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+              firstName: user.firstName || data.firstName,
+              lastName: user.lastName || data.lastName,
+            },
+          });
+        }
       }
-    } catch {
+    } catch (err: any) {
       user = {
         id: `user-demo-${Date.now()}`,
         email: normalizedEmail,
@@ -269,6 +299,8 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         role: verifiedRole,
+        isNewUser,
+        acceptedTermsAt: user.createdAt || new Date().toISOString(),
       },
     };
   }

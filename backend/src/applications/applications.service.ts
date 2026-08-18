@@ -31,7 +31,7 @@ export class ApplicationsService {
         userId,
         jobId: dto.jobId,
         resumeId: targetResumeId || null,
-        status: 'applied',
+        status: 'PENDING',
       },
       include: {
         job: true,
@@ -39,7 +39,7 @@ export class ApplicationsService {
       },
     });
 
-    this.logger.log(`[Production Application] Dispatched candidate resume packet for User ${userId} to Job ${dto.jobId}`);
+    this.logger.log(`[Production Application] Initialized application record for User ${userId} to Job ${dto.jobId} with status PENDING`);
     return {
       ...application,
       status: application.status.toLowerCase(),
@@ -53,7 +53,7 @@ export class ApplicationsService {
       results.push(app);
     }
     return {
-      message: `Successfully dispatched ATS resume packet to ${results.length} job requisitions!`,
+      message: `Successfully queued ${results.length} job requisitions for application execution context.`,
       appliedCount: results.length,
       applications: results,
     };

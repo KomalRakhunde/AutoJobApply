@@ -3,7 +3,8 @@ import { JobSourceAdapter } from './job-source-adapter.interface';
 import { HnYcJobsAdapter } from './hn-yc-jobs.adapter';
 import { RemoteOkJobsAdapter } from './remoteok-jobs.adapter';
 import { SimplifyJobsAdapter } from './simplify-jobs.adapter';
-import { FirecrawlService, ScrapedJob } from '../firecrawl.service';
+import { IScraperProvider } from '../scraper-provider.interface';
+import { ScrapedJob } from '../firecrawl.service';
 
 @Injectable()
 export class AdapterRegistryService {
@@ -37,18 +38,18 @@ export class AdapterRegistryService {
     return Array.from(this.adapters.values());
   }
 
-  async fetchJobsFromPrimary(firecrawlService: FirecrawlService): Promise<ScrapedJob[]> {
+  async fetchJobsFromPrimary(scraperProvider: IScraperProvider): Promise<ScrapedJob[]> {
     const primary = this.getPrimaryAdapter();
     this.logger.log(`[Adapter Registry] Running Primary Permitted Source Adapter: ${primary.sourceName}`);
-    return primary.fetchJobs(firecrawlService);
+    return primary.fetchJobs(scraperProvider);
   }
 
-  async fetchJobsFromSource(sourceName: string, firecrawlService: FirecrawlService): Promise<ScrapedJob[]> {
+  async fetchJobsFromSource(sourceName: string, scraperProvider: IScraperProvider): Promise<ScrapedJob[]> {
     const adapter = this.adapters.get(sourceName);
     if (!adapter) {
       this.logger.warn(`Adapter '${sourceName}' not found. Falling back to Primary Adapter.`);
-      return this.fetchJobsFromPrimary(firecrawlService);
+      return this.fetchJobsFromPrimary(scraperProvider);
     }
-    return adapter.fetchJobs(firecrawlService);
+    return adapter.fetchJobs(scraperProvider);
   }
 }

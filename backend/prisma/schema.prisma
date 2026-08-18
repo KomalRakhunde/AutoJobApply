@@ -1,187 +1,165 @@
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "postgresql"
 }
 
 model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
+  id              String          @id @default(uuid())
+  email           String          @unique
   password        String
   firstName       String?
   lastName        String?
-  role            String    @default("USER")
-  isVerified      Boolean   @default(false)
+  role            String          @default("USER")
+  isVerified      Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
   acceptedTermsAt DateTime?
-  isNewUser       Boolean   @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  profile        Profile?
-  education      Education[]
-  experience     Experience[]
-  certifications Certification[]
-  skills Skill[]
-  resumes Resume[]
-  applications Application[]
-  notifications Notification[]
-  recruiter Recruiter?
+  isNewUser       Boolean         @default(true)
+  applications    Application[]
+  certifications  Certification[]
+  education       Education[]
+  experience      Experience[]
+  notifications   Notification[]
+  profile         Profile?
+  recruiter       Recruiter?
+  resumes         Resume[]
+  skills          Skill[]
 
   @@map("users")
 }
 
 model Profile {
-  id     String @id @default(uuid())
-  userId String @unique
-
+  id                String   @id @default(uuid())
+  userId            String   @unique
   phone             String?
   location          String?
   preferredLocation String?
   expectedSalary    String?
   noticePeriod      String?
-
-  linkedinUrl  String?
-  portfolioUrl String?
-  githubUrl    String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
+  linkedinUrl       String?
+  portfolioUrl      String?
+  githubUrl         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id])
 
   @@map("profiles")
 }
 
 model Education {
-  id     String @id @default(uuid())
-  userId String
-
+  id        String   @id @default(uuid())
+  userId    String
   degree    String
   field     String?
   institute String?
   startYear Int?
   endYear   Int?
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
   @@map("educations")
 }
 
 model Experience {
-  id     String @id @default(uuid())
-  userId String
-
+  id          String    @id @default(uuid())
+  userId      String
   company     String
   role        String
   description String?
   startDate   DateTime?
   endDate     DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id])
 
   @@map("experiences")
 }
 
 model Certification {
-  id     String @id @default(uuid())
-  userId String
-
+  id        String    @id @default(uuid())
+  userId    String
   name      String
   issuer    String?
   issueDate DateTime?
-
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id])
 
   @@map("certifications")
 }
+
 model Skill {
-  id     String @id @default(uuid())
-  userId String
-
-  name  String
-  level String?
-
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  level     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
   @@map("skills")
 }
+
 model Resume {
-  id     String @id @default(uuid())
-  userId String
-
-  title    String
-  fileUrl  String?
-  atsScore String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
+  id           String           @id @default(uuid())
+  userId       String
+  title        String
+  fileUrl      String?
+  atsScore     String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  analyses     ResumeAnalysis[]
   applications Application[]
-  analyses ResumeAnalysis[]
+  user         User             @relation(fields: [userId], references: [id])
+
   @@map("resumes")
 }
+
 model Job {
-  id String @id @default(uuid())
-
-  title       String
-  company     String
-  location    String?
-  description String?
-  salary      String?
-  applyUrl    String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String        @id @default(uuid())
+  title        String
+  company      String
+  location     String?
+  description  String?
+  salary       String?
+  applyUrl     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   applications Application[]
+
   @@map("jobs")
 }
+
 model Application {
-  id String @id @default(uuid())
-
-  userId   String
-  jobId    String
-  resumeId String?
-
-  status String @default("Applied")
-
+  id        String   @id @default(uuid())
+  userId    String
+  jobId     String
+  resumeId  String?
+  status    String   @default("Applied")
   appliedAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id])
-  job    Job    @relation(fields: [jobId], references: [id])
-  resume Resume? @relation(fields: [resumeId], references: [id])
+  job       Job      @relation(fields: [jobId], references: [id])
+  resume    Resume?  @relation(fields: [resumeId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
   @@map("applications")
 }
 
 model Notification {
-  id      String @id @default(uuid())
-  userId  String
-
-  title   String
-  message String
-  isRead  Boolean @default(false)
-
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
   @@map("notifications")
 }
+
 model ResumeAnalysis {
   id            String   @id @default(uuid())
   resumeId      String
@@ -191,10 +169,10 @@ model ResumeAnalysis {
   missingSkills Json
   suggestions   Json
   createdAt     DateTime @default(now())
-
-  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  resume        Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
 }
- model CoverLetter {
+
+model CoverLetter {
   id        String   @id @default(cuid())
   userId    String
   jobId     String?
@@ -205,183 +183,168 @@ model ResumeAnalysis {
 }
 
 model Recruiter {
-  id          String   @id @default(uuid())
-  userId      String?  @unique
-  companyName String   @default("ApplyAI Corp")
+  id          String       @id @default(uuid())
+  userId      String?      @unique
+  companyName String       @default("ApplyAI Corp")
   department  String?
-  role        String   @default("RECRUITER")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user        User?        @relation(fields: [userId], references: [id])
+  role        String       @default("RECRUITER")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   jobPostings JobPosting[]
+  user        User?        @relation(fields: [userId], references: [id])
 
   @@map("recruiters")
 }
 
 model JobPosting {
-  id               String   @id @default(uuid())
-  recruiterId      String
-  title            String
-  department       String?
-  location         String?  @default("Remote")
-  employmentType   String?  @default("Full-Time")
-  description      String
-  requirements     String
-  passingThreshold Int      @default(70)
-  targetHeadcount  Int      @default(10)
-  autoInterviewEnabled Boolean @default(false)
-  autoOfferEnabled     Boolean @default(false)
-  maxInterviewDurationSeconds Int @default(600)
-  nextStepType     String?  @default("Interview")
-  nextStepDescription String? @default("AI Technical Voice Screening")
-  nextStepLink     String?
-  nextStepDate     String?  @default("Next Tuesday")
-  nextStepTime     String?  @default("10:00 AM EST")
-  status           String   @default("OPEN")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  recruiter      Recruiter        @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
-  candidates     Candidate[]
-  pipelineStages PipelineStage[]
-  candidateScores CandidateScore[]
-  interviewSessions InterviewSession[]
+  id                          String             @id @default(uuid())
+  recruiterId                 String
+  title                       String
+  department                  String?
+  location                    String?            @default("Remote")
+  employmentType              String?            @default("Full-Time")
+  description                 String
+  requirements                String
+  passingThreshold            Int                @default(70)
+  autoInterviewEnabled        Boolean            @default(false)
+  maxInterviewDurationSeconds Int                @default(600)
+  status                      String             @default("OPEN")
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
+  parsedJobJson               Json?
+  targetHeadcount             Int?               @default(10)
+  autoOfferEnabled            Boolean?           @default(false)
+  candidateScores             CandidateScore[]
+  candidates                  Candidate[]
+  interviewSessions           InterviewSession[]
+  recruiter                   Recruiter          @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  pipelineStages              PipelineStage[]
 
   @@map("job_postings")
 }
 
 model Candidate {
-  id           String    @id @default(uuid())
-  jobPostingId String
-  name         String
-  email        String
-  phone        String?
-  skills       Json?
-  experience   Json?
-  rawText      String?
-  currentStage String    @default("Screened")
-  status       String    @default("NEW")
-  consentGiven Boolean   @default(true)
-  stageUpdatedAt DateTime @default(now())
-  deletedAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  jobPosting          JobPosting           @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
-  resumeUploads       ResumeUpload[]
+  id                  String               @id @default(uuid())
+  jobPostingId        String
+  name                String
+  email               String
+  phone               String?
+  skills              Json?
+  experience          Json?
+  rawText             String?
+  currentStage        String               @default("Screened")
+  status              String               @default("NEW")
+  consentGiven        Boolean              @default(true)
+  stageUpdatedAt      DateTime             @default(now())
+  deletedAt           DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  auditLogs           AuditLog[]
   scores              CandidateScore[]
+  jobPosting          JobPosting           @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
   interviewRounds     InterviewRound[]
-  outreachLogs        OutreachLog[]
+  interviewSessions   InterviewSession[]
   offers              Offer[]
   onboardingChecklist OnboardingChecklist?
-  auditLogs           AuditLog[]
-  interviewSessions   InterviewSession[]
+  outreachLogs        OutreachLog[]
+  resumeUploads       ResumeUpload[]
 
   @@map("candidates")
 }
 
 model ResumeUpload {
-  id          String   @id @default(uuid())
-  candidateId String
-  fileName    String
-  fileUrl     String?
-  fileSize    Int?
-  rawContent  String?
-  uploadedAt  DateTime @default(now())
-
-  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  id               String    @id @default(uuid())
+  candidateId      String
+  fileName         String
+  fileUrl          String?
+  fileSize         Int?
+  rawContent       String?
+  uploadedAt       DateTime  @default(now())
+  parsedResumeJson Json?
+  parsingStatus    String?
+  candidate        Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
   @@map("resume_uploads")
 }
 
 model CandidateScore {
-  id           String   @id @default(uuid())
-  candidateId  String
-  jobPostingId String
-  overallScore Int
-  summary      String
-  strengths    Json?
-  gaps         Json?
-  matchDetails Json?
-  createdAt    DateTime @default(now())
-
-  candidate  Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  id                       String     @id @default(uuid())
+  candidateId              String
+  jobPostingId             String
+  overallScore             Int
+  summary                  String
+  strengths                Json?
+  gaps                     Json?
+  matchDetails             Json?
+  createdAt                DateTime   @default(now())
+  matchingSkills           Json?
+  missingCriticalSkills    Json?
+  experienceRequirementMet Boolean?
+  shortFinalVerdict        String?
+  evaluationStatus         String?
+  candidate                Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobPosting               JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
 
   @@map("candidate_scores")
 }
 
 model PipelineStage {
-  id           String   @id @default(uuid())
-  jobPostingId String
-  name         String
-  stageOrder   Int
-  stageType    String   @default("AI")
-  createdAt    DateTime @default(now())
-
-  jobPosting      JobPosting       @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  id              String           @id @default(uuid())
+  jobPostingId    String
+  name            String
+  stageOrder      Int
+  stageType       String           @default("AI")
+  createdAt       DateTime         @default(now())
   interviewRounds InterviewRound[]
+  jobPosting      JobPosting       @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
 
   @@map("pipeline_stages")
 }
 
 model InterviewRound {
-  id           String    @id @default(uuid())
-  candidateId  String
-  stageId      String?
-  roundName    String    @default("AI Voice Screening")
-  status       String    @default("PENDING")
-  score        Int?
-  scheduledAt  DateTime?
-  completedAt  DateTime?
-  consentLogged Boolean  @default(true)
-  createdAt    DateTime  @default(now())
-
-  candidate  Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  stage      PipelineStage?  @relation(fields: [stageId], references: [id])
-  transcripts CallTranscript[]
+  id            String           @id @default(uuid())
+  candidateId   String
+  stageId       String?
+  roundName     String           @default("AI Voice Screening")
+  status        String           @default("PENDING")
+  score         Int?
+  scheduledAt   DateTime?
+  completedAt   DateTime?
+  consentLogged Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  transcripts   CallTranscript[]
+  candidate     Candidate        @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  stage         PipelineStage?   @relation(fields: [stageId], references: [id])
 
   @@map("interview_rounds")
 }
 
 model CallTranscript {
-  id               String   @id @default(uuid())
+  id               String         @id @default(uuid())
   interviewRoundId String
   recordingUrl     String?
   transcript       String
   sentimentScore   Int?
   commScore        Int?
   techAccuracy     Int?
-  durationSeconds  Int?     @default(0)
-  costEstimate     Float?   @default(0.0)
-  createdAt        DateTime @default(now())
-
-  interviewRound InterviewRound @relation(fields: [interviewRoundId], references: [id], onDelete: Cascade)
+  durationSeconds  Int?           @default(0)
+  costEstimate     Float?         @default(0.0)
+  createdAt        DateTime       @default(now())
+  interviewRound   InterviewRound @relation(fields: [interviewRoundId], references: [id], onDelete: Cascade)
 
   @@map("call_transcripts")
 }
 
 model OutreachLog {
-  id             String    @id @default(uuid())
-  candidateId    String
-  emailType      String    @default("SHORTLISTED")
-  channel        String    @default("EMAIL")
-  status         String    @default("PENDING")
-  emailMessageId String?
-  recipientEmail String?
-  subject        String?
-  messageBody    String?
-  sentAt         DateTime?
-  deliveredAt    DateTime?
-  failedAt       DateTime?
-  error          String?
-  templateUsed   String?
-  createdAt      DateTime  @default(now())
+  id           String    @id @default(uuid())
+  candidateId  String
+  channel      String    @default("EMAIL")
+  status       String    @default("Contacted")
+  templateUsed String?
+  messageBody  String?
+  sentAt       DateTime  @default(now())
+  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
-  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-
-  @@unique([candidateId, emailType])
   @@map("outreach_logs")
 }
 
@@ -395,8 +358,7 @@ model Offer {
   declineReason String?
   signedAt      DateTime?
   createdAt     DateTime  @default(now())
-
-  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
   @@map("offers")
 }
@@ -409,48 +371,57 @@ model OnboardingChecklist {
   nudgeSentAt    DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-
-  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  candidate      Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
   @@map("onboarding_checklists")
 }
 
 model AuditLog {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   candidateId String?
   action      String
-  performedBy String   @default("AI_SYSTEM")
+  performedBy String     @default("AI_SYSTEM")
   reason      String?
   metadata    Json?
-  createdAt   DateTime @default(now())
-
-  candidate Candidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  candidate   Candidate? @relation(fields: [candidateId], references: [id])
 
   @@map("audit_logs")
 }
 
 model InterviewSession {
-  id                    String    @id @default(uuid())
-  candidateId           String
-  jobPostingId          String
-  roomName              String
-  joinToken             String    @unique
-  status                String    @default("pending")
-  questionContext       Json?
-  transcript            String?
-  recordingUrl          String?
-  durationSeconds       Int?
-  maxDurationSeconds    Int       @default(600)
-  triggeredBy           String    @default("manual")
-  startedAt             DateTime?
-  endedAt               DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  candidate  Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  id                 String     @id @default(uuid())
+  candidateId        String
+  jobPostingId       String
+  roomName           String
+  joinToken          String     @unique
+  status             String     @default("pending")
+  questionContext    Json?
+  transcript         String?
+  recordingUrl       String?
+  durationSeconds    Int?
+  maxDurationSeconds Int        @default(600)
+  triggeredBy        String     @default("manual")
+  startedAt          DateTime?
+  endedAt            DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  candidate          Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobPosting         JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
 
   @@map("interview_sessions")
 }
 
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  isSecret    Boolean  @default(false)
+  category    String   @default("general")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
 

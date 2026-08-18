@@ -9,6 +9,7 @@ export function useGetProfile(userId: string | undefined) {
     queryKey: ['profile', userId],
     queryFn: () => apiRequest<Profile>(`/profiles/${userId}`, { auth: true }),
     enabled: !!userId,
+    retry: false,
   });
 }
 

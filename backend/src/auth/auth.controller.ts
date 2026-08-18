@@ -39,7 +39,9 @@ export class AuthController {
       firstName?: string;
       lastName?: string;
       requestedRole?: string;
-      provider: 'google' | 'linkedin';
+      provider: 'google' | 'linkedin' | 'microsoft';
+      providerId?: string;
+      picture?: string;
     },
   ) {
     return this.authService.validateOAuthUser(body);

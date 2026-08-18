@@ -12,19 +12,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin;
+  const origin = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || new URL(request.url).origin;
   const redirectUri = `${origin}/api/auth/callback/microsoft`;
   const msClientId = process.env.MICROSOFT_CLIENT_ID;
+  const tenantId = process.env.MICROSOFT_TENANT_ID || 'common';
 
-  if (msClientId) {
-    const scope = encodeURIComponent('openid profile email User.Read');
-    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${msClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${encodeURIComponent(role)}&prompt=select_account`;
-    return NextResponse.redirect(authUrl);
+  if (!msClientId || msClientId === 'your_microsoft_client_id') {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set(
+      'error',
+      'Microsoft OAuth is not configured in environment variables. Please set MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET in .env',
+    );
+    return NextResponse.redirect(loginUrl);
   }
 
-  const callbackUrl = new URL(`/api/auth/callback/microsoft`, request.url);
-  callbackUrl.searchParams.set('role', role);
-  callbackUrl.searchParams.set('prompt', 'select_account');
-  callbackUrl.searchParams.set('code', randomBytes(16).toString('hex'));
-  return NextResponse.redirect(callbackUrl);
+  const scope = encodeURIComponent('openid profile email User.Read');
+  const authUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?client_id=${msClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${scope}&state=${encodeURIComponent(role)}&prompt=select_account`;
+  return NextResponse.redirect(authUrl);
 }

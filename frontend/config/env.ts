@@ -43,7 +43,7 @@ export const envConfig = {
   SMTP_PORT: Number(process.env.SMTP_PORT) || 587,
 
   /** JWT Secret Key for Token Signatures */
-  JWT_SECRET: process.env.JWT_SECRET || 'applyai-prod-jwt-secret-min-32-characters',
+  JWT_SECRET: process.env.JWT_SECRET || 'your_super_secret_jwt_key_min_32_chars',
 } as const;
 
 /**

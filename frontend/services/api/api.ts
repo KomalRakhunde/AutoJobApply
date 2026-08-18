@@ -82,6 +82,9 @@ export async function apiRequest<T>(
   const data = text ? safeParse(text) : null;
 
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== 'undefined' && auth) {
+      localStorage.removeItem('applyai_token');
+    }
     const raw =
       data && typeof data === 'object' && 'message' in data
         ? (data as { message: unknown }).message

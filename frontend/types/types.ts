@@ -101,6 +101,13 @@ export interface InterviewQuestionsResponse {
 
 /* ---------- Jobs ---------- */
 
+export interface MatchBreakdown {
+  skillScore: number;
+  experienceScore: number;
+  locationScore: number;
+  salaryScore: number | null;
+}
+
 export interface Job {
   id: string;
   title: string;
@@ -111,6 +118,11 @@ export interface Job {
   applyUrl?: string | null;
   createdAt: string;
   updatedAt: string;
+  matchScore?: number;
+  matchLevel?: string;
+  matchedSkills?: string[];
+  reasons?: string[];
+  matchBreakdown?: MatchBreakdown;
 }
 
 export interface CreateJobDto {

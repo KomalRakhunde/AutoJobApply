@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { FirecrawlService } from './firecrawl.service';
+import { CloudflareScraperService } from './cloudflare-scraper.service';
+import { FallbackScraperProvider } from './fallback-scraper.provider';
 import { JobExtractorService } from './job-extractor.service';
 import { JobValidatorService } from './job-validator.service';
 import { HnYcJobsAdapter } from './adapters/hn-yc-jobs.adapter';
@@ -12,6 +14,8 @@ import { AdapterRegistryService } from './adapters/adapter-registry.service';
     JobExtractorService,
     JobValidatorService,
     FirecrawlService,
+    CloudflareScraperService,
+    FallbackScraperProvider,
     HnYcJobsAdapter,
     RemoteOkJobsAdapter,
     SimplifyJobsAdapter,
@@ -21,6 +25,8 @@ import { AdapterRegistryService } from './adapters/adapter-registry.service';
     JobExtractorService,
     JobValidatorService,
     FirecrawlService,
+    CloudflareScraperService,
+    FallbackScraperProvider,
     HnYcJobsAdapter,
     RemoteOkJobsAdapter,
     SimplifyJobsAdapter,

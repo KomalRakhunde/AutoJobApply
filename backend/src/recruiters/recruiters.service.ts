@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
 import { InterviewService } from '../interview/interview.service';
-import * as pdfParseModule from 'pdf-parse';
+import { DocumentReaderService } from './document-reader.service';
+import { JobJD, validateJobJD } from './dto/resume-evaluation-schemas';
 
 export interface CreateJobDto {
   title: string;
@@ -20,10 +21,13 @@ export interface CreateJobDto {
 
 @Injectable()
 export class RecruitersService {
+  private readonly logger = new Logger(RecruitersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly aiService: AiService,
     private readonly interviewService: InterviewService,
+    private readonly documentReaderService: DocumentReaderService,
   ) {}
 
   private async getOrCreateDefaultRecruiter() {
@@ -164,104 +168,167 @@ export class RecruitersService {
     return this.demoJobs[0];
   }
 
+  async parseAndSaveJobDescription(jobPostingId: string, rawText?: string): Promise<JobJD> {
+    const job = await this.getJobPostingById(jobPostingId);
+    const jdText = rawText || `${job.title}\n${job.description}\nRequirements:\n${job.requirements || ''}`;
+
+    const parsedJd = await this.aiService.parseJobDescription(jdText);
+
+    try {
+      await this.prisma.jobPosting.update({
+        where: { id: jobPostingId },
+        data: {
+          parsedJobJson: parsedJd as any,
+          description: rawText || job.description,
+        },
+      });
+    } catch (err: any) {
+      this.logger.warn(`Could not save parsedJobJson to database: ${err?.message}`);
+    }
+
+    return parsedJd;
+  }
+
   async bulkUploadResumes(jobPostingId: string, files: Express.Multer.File[]) {
     const job = await this.getJobPostingById(jobPostingId);
     if (!files || files.length === 0) {
       throw new BadRequestException('No resume files uploaded');
     }
 
+    // Step 1: Ensure structured JobJD exists
+    let jobJd: JobJD;
+    if ((job as any).parsedJobJson) {
+      jobJd = validateJobJD((job as any).parsedJobJson);
+    } else {
+      jobJd = await this.aiService.parseJobDescription(
+        `${job.title}\n${job.description}\nRequirements:\n${job.requirements || ''}`,
+      );
+    }
+
     const processedCandidates = [];
 
-    const parsePdf = typeof pdfParseModule === 'function' ? pdfParseModule : (pdfParseModule as any).default || pdfParseModule;
-
+    // Step 2: Controlled sequential batch processing (prevents rate limiting and avoids stopping on 1 bad file)
     for (const file of files) {
+      let documentResult;
       let rawText = '';
+      let fileType = 'PDF';
+
       try {
-        if (!file || !file.buffer || file.buffer.length === 0) {
-          rawText = '';
-        } else if (file.mimetype === 'application/pdf' || file.originalname?.toLowerCase().endsWith('.pdf') || file.buffer.toString('utf-8', 0, 5).startsWith('%PDF-')) {
-          const parsed = await parsePdf(file.buffer);
-          if (parsed && parsed.text) {
-            rawText = parsed.text.trim();
-          }
-        } else {
-          rawText = file.buffer.toString('utf-8');
-        }
-      } catch (err) {
-        if (file && file.buffer) {
-          rawText = file.buffer.toString('utf-8').replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim();
-        }
+        documentResult = await this.documentReaderService.readResumeDocument(file);
+        rawText = documentResult.extractedText;
+        fileType = documentResult.fileType;
+      } catch (docErr: any) {
+        this.logger.warn(`Document extraction failed for ${file.originalname}: ${docErr?.message}`);
+        // Persist failure status and continue batch
+        const failedName = file.originalname.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        const failedCand = {
+          id: `cand-failed-${Date.now()}`,
+          jobPostingId: job.id,
+          name: failedName,
+          email: `${failedName.toLowerCase().replace(/\s+/g, '.')}@failed-parse.local`,
+          phone: '',
+          skills: [],
+          experience: { summary: 'Parsing failed for uploaded file format.' },
+          rawText: `Parsing failed for ${file.originalname}`,
+          currentStage: 'Failed Intake',
+          status: 'PARSING_FAILED',
+          createdAt: new Date().toISOString(),
+          scores: [
+            {
+              id: `score-failed-${Date.now()}`,
+              overallScore: 0,
+              summary: `Failed to extract text from ${file.originalname}. ${docErr?.message || ''}`,
+              strengths: [],
+              gaps: ['File reading error'],
+              matchingSkills: [],
+              missingCriticalSkills: [],
+              experienceRequirementMet: false,
+              shortFinalVerdict: `Parsing failed: Unsupported or corrupted file format.`,
+            },
+          ],
+          resumeUploads: [
+            {
+              fileName: file.originalname,
+              parsingStatus: 'PARSING_FAILED',
+            },
+          ],
+          auditLogs: [],
+          interviewSessions: [],
+        };
+        processedCandidates.push(failedCand);
+        continue; // BATCH CONTINUES
       }
 
-      if (!rawText || rawText.replace(/[^a-zA-Z0-9]/g, '').length < 15) {
-        const cleanName = (file?.originalname || 'Candidate_Resume').replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-        rawText = `Resume file (${cleanName}): Experienced professional software engineer with background in software engineering, technical skills, and domain experience relevant to ${job.title}.`;
-      }
-
-      // AI evaluation
-      let aiResult: any = null;
+      // Step 3 & 4: Structured LLM Resume Parser
+      let resumeJson;
       try {
-        const rawAiOutput = await this.aiService.evaluateRecruiterCandidate(
-          rawText,
-          job.description,
-          job.requirements,
-        );
-        const cleanJson = rawAiOutput.replace(/```json/g, '').replace(/```/g, '').trim();
-        aiResult = JSON.parse(cleanJson);
-      } catch (e) {
-        // Fallback robust parsing if JSON format fails
-        const sanitizedName = file.originalname.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
-        aiResult = {
-          name: sanitizedName,
-          email: `${sanitizedName.toLowerCase().replace(/\s+/g, '.')}@candidate.io`,
-          phone: '+1 555 0192',
-          skills: ['TypeScript', 'Software Engineering', 'Problem Solving'],
-          experienceSummary: 'Experienced professional candidate.',
-          overallScore: Math.floor(Math.random() * 30) + 65,
-          summary: `Strong technical applicant evaluated for ${job.title}. Demonstrates core competencies matching the job description.`,
-          strengths: ['Relevant domain experience', 'Good communication background'],
-          gaps: ['Requires deep technical verification'],
+        resumeJson = await this.aiService.parseResumeStructured(rawText);
+      } catch (parseErr: any) {
+        this.logger.warn(`Resume JSON parsing failed for ${file.originalname}: ${parseErr?.message}`);
+        resumeJson = {
+          name: file.originalname.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),
+          email: null,
+          phone_number: null,
+          total_experience_years: 0,
+          skills: [],
+          experiences: [],
+          projects: [],
+          certifications: [],
         };
       }
 
-      const scoreValue = Math.min(100, Math.max(0, Number(aiResult.overallScore) || 75));
+      // Step 5 & 6: HR Candidate Evaluation
+      const sanitizedName = (resumeJson.name || file.originalname.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')).trim();
+      const matchResult = await this.aiService.evaluateCandidateMatch(resumeJson, jobJd, sanitizedName);
+
+      const scoreValue = Math.min(100, Math.max(0, Math.round(Number(matchResult.score) || 75)));
 
       let candidate: any = null;
       try {
         candidate = await this.prisma.candidate.create({
           data: {
             jobPostingId: job.id,
-            name: aiResult.name || file.originalname.replace(/\.[^/.]+$/, ""),
-            email: aiResult.email || `candidate_${Date.now()}@example.com`,
-            phone: aiResult.phone || '',
-            skills: aiResult.skills || [],
-            experience: { summary: aiResult.experienceSummary || '' },
+            name: sanitizedName,
+            email: resumeJson.email || `candidate_${Date.now()}_${Math.floor(Math.random() * 1000)}@example.com`,
+            phone: resumeJson.phone_number || '',
+            skills: matchResult.matching_skills.length > 0 ? matchResult.matching_skills : resumeJson.skills,
+            experience: {
+              totalYears: resumeJson.total_experience_years,
+              experiences: resumeJson.experiences,
+              projects: resumeJson.projects,
+            },
             rawText: rawText.slice(0, 5000),
             currentStage: 'Screened',
-            status: scoreValue >= job.passingThreshold ? 'QUALIFIED' : 'NEW',
+            status: scoreValue >= (job.passingThreshold || 70) ? 'QUALIFIED' : 'NEW',
             resumeUploads: {
               create: {
                 fileName: file.originalname,
                 fileSize: file.size,
                 rawContent: rawText.slice(0, 2000),
+                parsedResumeJson: resumeJson as any,
+                parsingStatus: 'EVALUATED',
               },
             },
             scores: {
               create: {
                 jobPostingId: job.id,
                 overallScore: scoreValue,
-                summary: aiResult.summary || `Evaluated candidate for ${job.title}`,
-                strengths: aiResult.strengths || [],
-                gaps: aiResult.gaps || [],
-                matchDetails: { evaluatedAt: new Date().toISOString() },
+                summary: matchResult.short_final_verdict,
+                strengths: matchResult.matching_skills,
+                gaps: matchResult.missing_critical_skills,
+                matchingSkills: matchResult.matching_skills,
+                missingCriticalSkills: matchResult.missing_critical_skills,
+                experienceRequirementMet: matchResult.experience_requirement_met,
+                shortFinalVerdict: matchResult.short_final_verdict,
+                evaluationStatus: 'EVALUATED',
               },
             },
             auditLogs: {
               create: {
-                action: 'RESUME_PARSED_AND_SCORED',
+                action: 'AI_RESUME_EVALUATED',
                 performedBy: 'AI_SYSTEM',
-                reason: `Scored ${scoreValue}% against job requirements (Threshold: ${job.passingThreshold}%)`,
-                metadata: { score: scoreValue, fileName: file.originalname },
+                reason: `Scored ${scoreValue}% against JobJD requirements. Verdict: ${matchResult.short_final_verdict}`,
+                metadata: { score: scoreValue, fileName: file.originalname, fileType },
               },
             },
           },
@@ -270,36 +337,47 @@ export class RecruitersService {
             resumeUploads: true,
           },
         });
-      } catch {
+      } catch (dbErr: any) {
+        this.logger.warn(`Database persistence fallback for ${sanitizedName}: ${dbErr?.message}`);
         candidate = {
-          id: `cand-${Date.now()}`,
+          id: `cand-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
           jobPostingId: job.id,
-          name: aiResult.name || file.originalname.replace(/\.[^/.]+$/, ""),
-          email: aiResult.email || `candidate_${Date.now()}@example.com`,
-          phone: aiResult.phone || '+1 555 0192',
-          skills: aiResult.skills || ['TypeScript', 'Software Engineering'],
-          experience: { summary: aiResult.experienceSummary || 'Experienced professional candidate' },
+          name: sanitizedName,
+          email: resumeJson.email || `candidate_${Date.now()}@example.com`,
+          phone: resumeJson.phone_number || '',
+          skills: matchResult.matching_skills.length > 0 ? matchResult.matching_skills : resumeJson.skills,
+          experience: { totalYears: resumeJson.total_experience_years, summary: 'Evaluated candidate profile' },
           currentStage: 'Screened',
-          status: scoreValue >= job.passingThreshold ? 'QUALIFIED' : 'NEW',
+          status: scoreValue >= (job.passingThreshold || 70) ? 'QUALIFIED' : 'NEW',
           createdAt: new Date().toISOString(),
           scores: [
             {
               id: `score-${Date.now()}`,
               overallScore: scoreValue,
-              summary: aiResult.summary || `Evaluated candidate for ${job.title}`,
-              strengths: aiResult.strengths || ['Strong technical background'],
-              gaps: aiResult.gaps || ['Needs deeper verification'],
+              summary: matchResult.short_final_verdict,
+              strengths: matchResult.matching_skills,
+              gaps: matchResult.missing_critical_skills,
+              matchingSkills: matchResult.matching_skills,
+              missingCriticalSkills: matchResult.missing_critical_skills,
+              experienceRequirementMet: matchResult.experience_requirement_met,
+              shortFinalVerdict: matchResult.short_final_verdict,
+              evaluationStatus: 'EVALUATED',
             },
           ],
-          resumeUploads: [{ fileName: file.originalname }],
+          resumeUploads: [
+            {
+              fileName: file.originalname,
+              parsingStatus: 'EVALUATED',
+              parsedResumeJson: resumeJson,
+            },
+          ],
           auditLogs: [],
           interviewSessions: [],
         };
-        this.demoCandidates.unshift(candidate);
       }
 
-      // Step 3 Auto-trigger: If score >= cutoff threshold AND autoInterviewEnabled is true
-      if (scoreValue >= job.passingThreshold && job.autoInterviewEnabled) {
+      // Auto-trigger voice interview if candidate is qualified & autoInterview is enabled
+      if (scoreValue >= (job.passingThreshold || 70) && job.autoInterviewEnabled) {
         try {
           await this.interviewService.createInterviewSession({
             candidateId: candidate.id,
@@ -307,7 +385,7 @@ export class RecruitersService {
             triggeredBy: 'auto',
           });
         } catch (autoErr) {
-          console.warn('Auto-interview session creation error:', autoErr);
+          this.logger.warn(`Auto-interview trigger notice: ${autoErr}`);
         }
       }
 
@@ -315,62 +393,11 @@ export class RecruitersService {
     }
 
     return {
-      message: `Successfully processed ${processedCandidates.length} resume(s)`,
+      message: `Successfully evaluated ${processedCandidates.length} resume(s)`,
       count: processedCandidates.length,
       candidates: processedCandidates,
     };
   }
-
-  private demoCandidates = [
-    {
-      id: 'cand-1',
-      jobPostingId: 'job-1',
-      name: 'Alex Johnson',
-      email: 'alex.j@example.com',
-      phone: '+1 555 0123',
-      skills: ['React', 'Node.js', 'TypeScript', 'GraphQL'],
-      experience: { summary: '5 years of full stack software development experience' },
-      currentStage: 'Screened',
-      status: 'QUALIFIED',
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      scores: [
-        {
-          id: 'score-1',
-          overallScore: 88,
-          summary: 'Excellent technical background matching Full Stack requirements.',
-          strengths: ['Strong React & TypeScript skills', 'Microservices design'],
-          gaps: ['Limited DevOps experience'],
-        },
-      ],
-      resumeUploads: [{ fileName: 'alex_johnson_resume.pdf' }],
-      auditLogs: [],
-      interviewSessions: [],
-    },
-    {
-      id: 'cand-2',
-      jobPostingId: 'job-1',
-      name: 'Sarah Williams',
-      email: 'sarah.w@example.com',
-      phone: '+1 555 0456',
-      skills: ['React', 'Next.js', 'Tailwind', 'REST APIs'],
-      experience: { summary: '3 years of frontend development' },
-      currentStage: 'Interview',
-      status: 'QUALIFIED',
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      scores: [
-        {
-          id: 'score-2',
-          overallScore: 92,
-          summary: 'Outstanding UI engineer with great component architecture.',
-          strengths: ['Expert Next.js & Tailwind CSS', 'Fast worker'],
-          gaps: ['Node.js backend optimization'],
-        },
-      ],
-      resumeUploads: [{ fileName: 'sarah_williams_resume.pdf' }],
-      auditLogs: [],
-      interviewSessions: [],
-    },
-  ];
 
   async getCandidatesByJob(jobPostingId: string, search?: string, minScore?: number, stage?: string) {
     let candidates = [];
@@ -401,21 +428,29 @@ export class RecruitersService {
         },
         orderBy: { createdAt: 'desc' },
       });
-      if (!candidates || candidates.length === 0) {
-        candidates = this.demoCandidates;
+      if (!candidates) {
+        candidates = [];
       }
-    } catch {
-      candidates = this.demoCandidates;
+    } catch (err: any) {
+      this.logger.error(`[RecruitersService] Error querying candidates: ${err?.message}`);
+      candidates = [];
     }
 
+    // CANDIDATE RANKING ENGINE: Sort by score DESC
+    const rankedCandidates = [...candidates].sort((a, b) => {
+      const scoreA = a.scores?.[0]?.overallScore ?? 0;
+      const scoreB = b.scores?.[0]?.overallScore ?? 0;
+      return scoreB - scoreA;
+    });
+
     if (minScore !== undefined && !isNaN(minScore)) {
-      return candidates.filter((c) => {
+      return rankedCandidates.filter((c) => {
         const topScore = c.scores[0]?.overallScore ?? 0;
         return topScore >= minScore;
       });
     }
 
-    return candidates;
+    return rankedCandidates;
   }
 
   async deleteCandidate(candidateId: string) {

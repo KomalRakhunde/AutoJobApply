@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,7 @@ const ROLES_LIST: { id: UserRole; label: string }[] = [
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const login = useLogin();
@@ -47,6 +48,18 @@ export default function LoginPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'linkedin' | 'microsoft' | null>(null);
+
+  useEffect(() => {
+    const errorParam = searchParams?.get('error');
+    if (errorParam) {
+      setError(errorParam);
+      toast({
+        title: 'Authentication Notice',
+        description: errorParam,
+        variant: 'destructive',
+      });
+    }
+  }, [searchParams, toast]);
 
   const handleOAuthLogin = (provider: 'google' | 'linkedin' | 'microsoft') => {
     setError(null);

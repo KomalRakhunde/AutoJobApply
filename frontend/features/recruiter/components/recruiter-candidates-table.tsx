@@ -807,34 +807,67 @@ export function RecruiterCandidatesTable({
               </div>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div>
-                <h4 className="font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  AI Summary
-                </h4>
-                <p className="text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">
-                  {selectedCandidate.scores[0]?.summary || 'No summary recorded.'}
+            <div className="space-y-4 text-xs">
+              {/* Score & Verdict Box */}
+              <div className="rounded-2xl border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-50/60 via-white to-purple-50/40 dark:from-indigo-950/40 dark:via-slate-900 dark:to-slate-900 p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold uppercase tracking-wider text-[10px] text-indigo-600 dark:text-indigo-400">
+                    Phase 5 — HR Match Verdict
+                  </span>
+                  <Badge className={selectedCandidate.scores[0]?.experienceRequirementMet !== false ? 'bg-emerald-500 text-white font-bold text-[10px]' : 'bg-amber-500 text-white font-bold text-[10px]'}>
+                    {selectedCandidate.scores[0]?.experienceRequirementMet !== false ? '✓ Experience Requirement Met' : '⚠️ Experience Verification Needed'}
+                  </Badge>
+                </div>
+                <p className="text-slate-800 dark:text-slate-200 font-medium text-xs leading-relaxed">
+                  {selectedCandidate.scores[0]?.shortFinalVerdict || selectedCandidate.scores[0]?.summary || 'Evaluated candidate profile against job description requirements.'}
                 </p>
               </div>
 
-              {selectedCandidate.scores[0]?.strengths && (
+              {/* Matching Skills */}
+              {((selectedCandidate.scores[0]?.matchingSkills && selectedCandidate.scores[0]?.matchingSkills.length > 0) || (selectedCandidate.scores[0]?.strengths && selectedCandidate.scores[0]?.strengths.length > 0)) && (
                 <div>
-                  <h4 className="font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1">
-                    Key Strengths
+                  <h4 className="font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 text-[10px] mb-1.5 flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Matching Skills
                   </h4>
-                  <ul className="list-disc list-inside text-slate-700 dark:text-slate-300 space-y-1">
-                    {selectedCandidate.scores[0].strengths.map((str, i) => (
-                      <li key={i}>{str}</li>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(selectedCandidate.scores[0]?.matchingSkills || selectedCandidate.scores[0]?.strengths || []).map((sk, i) => (
+                      <Badge key={i} className="bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800 font-mono text-[10px]">
+                        ✓ {sk}
+                      </Badge>
                     ))}
-                  </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Missing Critical Skills */}
+              {((selectedCandidate.scores[0]?.missingCriticalSkills && selectedCandidate.scores[0]?.missingCriticalSkills.length > 0) || (selectedCandidate.scores[0]?.gaps && selectedCandidate.scores[0]?.gaps.length > 0)) && (
+                <div>
+                  <h4 className="font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 text-[10px] mb-1.5 flex items-center gap-1">
+                    <AlertCircle className="h-3.5 w-3.5" /> Missing Critical Skills / Gaps
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(selectedCandidate.scores[0]?.missingCriticalSkills || selectedCandidate.scores[0]?.gaps || []).map((gap, i) => (
+                      <Badge key={i} className="bg-rose-50 text-rose-800 border border-rose-200 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-800 font-mono text-[10px]">
+                        ✗ {gap}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Extracted Experience & File Info */}
+              {selectedCandidate.experience && (
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
+                  <span>File: {selectedCandidate.resumeUploads?.[0]?.fileName || 'Resume.pdf'}</span>
+                  <span>Extracted Skills: {(selectedCandidate.skills || []).length}</span>
                 </div>
               )}
             </div>
 
-            <div className="pt-2 flex justify-end">
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
               <Button
                 onClick={() => setSelectedCandidate(null)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold px-5"
               >
                 Close Scorecard
               </Button>
