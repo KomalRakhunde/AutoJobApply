@@ -29,7 +29,6 @@ import { setCredentials } from '@/store/auth-slice';
 import { useToast } from '@/hooks/use-toast';
 import { PasswordMeter, isPasswordValid } from '@/components/common/password-meter';
 import type { UserRole } from '@/types/types';
-import { generateValidJwt } from '@/utils/jwt';
 
 const ROLES_LIST: { id: UserRole; label: string }[] = [
   { id: 'student', label: 'Student' },
@@ -128,14 +127,10 @@ export default function RegisterPage() {
       });
 
       const userRole: UserRole = (res.user?.role || selectedRole).toLowerCase() as UserRole;
-      const token =
-        res.accessToken ||
-        res.token ||
-        generateValidJwt({
-          userId: res.user.id,
-          email: res.user.email,
-          role: userRole,
-        });
+      const token = res.accessToken || res.token;
+      if (!token) {
+        throw new Error('Server did not return an authentication token.');
+      }
 
       document.cookie = `applyai_token=${token}; path=/; max-age=604800; SameSite=Lax`;
       document.cookie = `applyai_role=${userRole}; path=/; max-age=604800; SameSite=Lax`;
@@ -188,62 +183,17 @@ export default function RegisterPage() {
         return;
       }
 
-      const isNetworkError =
-        !err?.status ||
-        (typeof errMsg === 'string' &&
-          (errMsg.toLowerCase().includes('failed to fetch') ||
-            errMsg.toLowerCase().includes('network'))) ||
-        err?.status === 404 ||
-        err?.status === 502 ||
-        err?.status === 503;
-
-      if (!isNetworkError) {
-        const displayMsg =
-          typeof errMsg === 'string' && errMsg
-            ? errMsg
-            : 'Registration failed due to invalid input.';
-        setError(displayMsg);
-        toast({
-          title: 'Registration Failed',
-          description: displayMsg,
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      console.warn('Backend unavailable, proceeding with demo account creation.');
+      const displayMsg =
+        typeof errMsg === 'string' && errMsg
+          ? errMsg
+          : 'Registration failed. Please try again.';
+      setError(displayMsg);
+      toast({
+        title: 'Registration Failed',
+        description: displayMsg,
+        variant: 'destructive',
+      });
     }
-
-    // Demo Mode Fallback
-    const demoUserId = `user-reg-${Date.now()}`;
-    const demoEmail = form.email || `${selectedRole}@applyai.com`;
-    const demoToken = generateValidJwt({
-      userId: demoUserId,
-      email: demoEmail,
-      role: selectedRole,
-    });
-
-    document.cookie = `applyai_token=${demoToken}; path=/; max-age=604800; SameSite=Lax`;
-    document.cookie = `applyai_role=${selectedRole}; path=/; max-age=604800; SameSite=Lax`;
-
-    dispatch(
-      setCredentials({
-        token: demoToken,
-        user: {
-          id: demoUserId,
-          email: demoEmail,
-          role: selectedRole,
-        },
-      })
-    );
-
-    toast({
-      title: 'Account Registered (Demo)',
-      description: `Accessing ApplyAI ${selectedRole.replace('_', ' ')} portal.`,
-    });
-
-    const targetPath = selectedRole === 'super_admin' ? '/dashboard/super-admin' : `/dashboard/${selectedRole}`;
-    router.push(targetPath);
   };
 
   return (

@@ -26,7 +26,6 @@ import { useAppDispatch } from '@/store/hooks';
 import { setCredentials } from '@/store/auth-slice';
 import { useToast } from '@/hooks/use-toast';
 import type { UserRole } from '@/types/types';
-import { generateValidJwt } from '@/utils/jwt';
 
 const ROLES_LIST: { id: UserRole; label: string }[] = [
   { id: 'student', label: 'Student' },
@@ -102,14 +101,10 @@ export default function LoginPage() {
       });
 
       const userRole = (res.user?.role || selectedRole).toLowerCase() as UserRole;
-      const token =
-        res.accessToken ||
-        res.token ||
-        generateValidJwt({
-          userId: res.user.id,
-          email: res.user.email,
-          role: userRole,
-        });
+      const token = res.accessToken || res.token;
+      if (!token) {
+        throw new Error('Server did not return an authentication token.');
+      }
 
       document.cookie = `applyai_token=${token}; path=/; max-age=604800; SameSite=Lax`;
       document.cookie = `applyai_role=${userRole}; path=/; max-age=604800; SameSite=Lax`;
@@ -149,56 +144,14 @@ export default function LoginPage() {
         return;
       }
 
-      const errMsg = err?.data?.message || err?.message || '';
-      const isNetworkError =
-        !err?.status ||
-        errMsg.toLowerCase().includes('failed to fetch') ||
-        errMsg.toLowerCase().includes('network') ||
-        err?.status === 404 ||
-        err?.status === 502 ||
-        err?.status === 503;
-
-      if (!isNetworkError) {
-        setError(errMsg || 'Authentication failed');
-        toast({
-          title: 'Authentication Failed',
-          description: errMsg || 'Authentication failed',
-          variant: 'destructive',
-        });
-        return;
-      }
-
-      console.warn('Backend unavailable, proceeding with demo login.');
+      const errMsg = err?.data?.message || err?.message || 'Could not reach the server. Please try again.';
+      setError(errMsg);
+      toast({
+        title: 'Authentication Failed',
+        description: errMsg,
+        variant: 'destructive',
+      });
     }
-
-    // Demo Mode Fallback
-    const demoUserEmail = email || `${selectedRole}@applyai.com`;
-    const demoToken = generateValidJwt({
-      userId: 'user-demo-1',
-      email: demoUserEmail,
-      role: selectedRole,
-    });
-    document.cookie = `applyai_token=${demoToken}; path=/; max-age=604800; SameSite=Lax`;
-    document.cookie = `applyai_role=${selectedRole}; path=/; max-age=604800; SameSite=Lax`;
-
-    dispatch(
-      setCredentials({
-        token: demoToken,
-        user: {
-          id: 'user-demo-1',
-          email: demoUserEmail,
-          role: selectedRole,
-        },
-      })
-    );
-
-    toast({
-      title: 'Logged In (Demo)',
-      description: `Accessing ${selectedRole.replace('_', ' ')} portal.`,
-    });
-
-    const targetPath = selectedRole === 'super_admin' ? '/dashboard/super-admin' : `/dashboard/${selectedRole}`;
-    router.push(targetPath);
   };
 
   return (

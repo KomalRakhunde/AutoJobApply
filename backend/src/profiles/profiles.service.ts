@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
@@ -6,23 +6,16 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 export class ProfilesService {
   constructor(private prisma: PrismaService) {}
 
-  async getProfile(userId: string) {
+  private assertDatabaseAvailable() {
     if (!this.prisma.isConnected) {
-      return {
-        id: `profile-${userId}`,
-        userId,
-        phone: null,
-        location: null,
-        preferredLocation: null,
-        expectedSalary: null,
-        noticePeriod: null,
-        linkedinUrl: null,
-        portfolioUrl: null,
-        githubUrl: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      throw new ServiceUnavailableException(
+        'The database is currently unavailable. Please try again in a moment.',
+      );
     }
+  }
+
+  async getProfile(userId: string) {
+    this.assertDatabaseAvailable();
 
     try {
       let profile = await this.prisma.profile.findUnique({
@@ -38,40 +31,14 @@ export class ProfilesService {
       }
       return profile;
     } catch {
-      return {
-        id: `profile-${userId}`,
-        userId,
-        phone: null,
-        location: null,
-        preferredLocation: null,
-        expectedSalary: null,
-        noticePeriod: null,
-        linkedinUrl: null,
-        portfolioUrl: null,
-        githubUrl: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      throw new ServiceUnavailableException(
+        'Could not load your profile due to a database error. Please try again.',
+      );
     }
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
-    if (!this.prisma.isConnected) {
-      return {
-        id: `profile-${userId}`,
-        userId,
-        phone: dto.phone || null,
-        location: dto.location || null,
-        preferredLocation: dto.preferredLocation || null,
-        expectedSalary: dto.expectedSalary || null,
-        noticePeriod: dto.noticePeriod || null,
-        linkedinUrl: dto.linkedinUrl || null,
-        portfolioUrl: dto.portfolioUrl || null,
-        githubUrl: dto.githubUrl || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-    }
+    this.assertDatabaseAvailable();
 
     try {
       return await this.prisma.profile.upsert({
@@ -80,20 +47,9 @@ export class ProfilesService {
         create: { userId, ...dto },
       });
     } catch {
-      return {
-        id: `profile-${userId}`,
-        userId,
-        phone: dto.phone || null,
-        location: dto.location || null,
-        preferredLocation: dto.preferredLocation || null,
-        expectedSalary: dto.expectedSalary || null,
-        noticePeriod: dto.noticePeriod || null,
-        linkedinUrl: dto.linkedinUrl || null,
-        portfolioUrl: dto.portfolioUrl || null,
-        githubUrl: dto.githubUrl || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      throw new ServiceUnavailableException(
+        'Could not save your profile due to a database error. Please try again.',
+      );
     }
   }
 }

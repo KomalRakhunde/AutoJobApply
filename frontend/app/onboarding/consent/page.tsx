@@ -63,6 +63,7 @@ export default function OnboardingConsentPage() {
           role: confirmedRole,
           termsAccepted: agreeTerms,
           dataPermission: agreeDataParsing,
+          provider,
           email,
         }),
       });
@@ -71,14 +72,13 @@ export default function OnboardingConsentPage() {
       if (!res.ok) {
         throw new Error(data.message || 'Consent registration failed.');
       }
+      if (!data.token || !data.user) {
+        throw new Error('Server did not return a valid session. Please try again.');
+      }
 
       const userRole = confirmedRole;
-      const token = data.token || 'session-' + Date.now();
-      const userData = data.user || {
-        id: `user-oauth-${Date.now()}`,
-        email: email || `${userRole}@applyai.com`,
-        role: userRole,
-      };
+      const token = data.token;
+      const userData = data.user;
 
       document.cookie = `applyai_token=${token}; path=/; max-age=604800; SameSite=Lax`;
       document.cookie = `applyai_role=${userRole}; path=/; max-age=604800; SameSite=Lax`;

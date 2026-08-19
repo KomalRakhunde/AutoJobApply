@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateValidJwt } from '@/utils/jwt';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -97,22 +96,27 @@ export async function GET(request: NextRequest) {
       }),
     });
 
-    let verifiedRole = requestedRole;
-    let jwtToken = generateValidJwt({
-      userId: `user-google-${userData.sub || Date.now()}`,
-      email: verifiedEmail,
-      role: requestedRole,
-      provider: 'google',
-    });
-    let isNewUser = false;
-    let acceptedTermsAt: string | null = null;
+    if (!backendRes.ok) {
+      const errData = await backendRes.json().catch(() => ({}));
+      console.error('Backend OAuth validation failed:', errData);
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set(
+        'error',
+        errData?.message || 'Could not complete Google sign-in. Please try again.',
+      );
+      return NextResponse.redirect(loginUrl);
+    }
 
-    if (backendRes.ok) {
-      const data = await backendRes.json();
-      verifiedRole = (data.user?.role || requestedRole).toLowerCase();
-      jwtToken = data.accessToken || jwtToken;
-      isNewUser = data.user?.isNewUser ?? false;
-      acceptedTermsAt = data.user?.acceptedTermsAt ?? null;
+    const data = await backendRes.json();
+    const verifiedRole = (data.user?.role || requestedRole).toLowerCase();
+    const jwtToken = data.accessToken;
+    const isNewUser = data.user?.isNewUser ?? false;
+    const acceptedTermsAt: string | null = data.user?.acceptedTermsAt ?? null;
+
+    if (!jwtToken) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('error', 'Google sign-in did not return a valid session. Please try again.');
+      return NextResponse.redirect(loginUrl);
     }
 
     if (isNewUser || !acceptedTermsAt) {

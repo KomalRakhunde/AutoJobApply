@@ -3,6 +3,7 @@ import {
   BadRequestException,
   UnauthorizedException,
   ConflictException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -14,6 +15,14 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
+
+  private assertDatabaseAvailable() {
+    if (!this.prisma.isConnected) {
+      throw new ServiceUnavailableException(
+        'The database is currently unavailable. Please try again in a moment.',
+      );
+    }
+  }
 
   async register(data: {
     email: string;
@@ -41,19 +50,7 @@ export class AuthService {
 
     const assignedRole = (data.role || 'student').toLowerCase();
 
-    // Offline / Demo Mode Direct Fallback
-    if (!this.prisma.isConnected) {
-      return {
-        message: 'Registration successful (Demo Mode)',
-        user: {
-          id: `user-demo-${Date.now()}`,
-          email: normalizedEmail,
-          firstName: data.firstName || 'Demo',
-          lastName: data.lastName || 'User',
-          role: assignedRole,
-        },
-      };
-    }
+    this.assertDatabaseAvailable();
 
     try {
       const existingUser = await this.prisma.user.findUnique({
@@ -80,8 +77,16 @@ export class AuthService {
         },
       });
 
+      const token = this.jwtService.sign({
+        sub: user.id,
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      });
+
       return {
         message: 'Registration successful',
+        accessToken: token,
         user: {
           id: user.id,
           email: user.email,
@@ -96,19 +101,16 @@ export class AuthService {
           'An account with this email address already exists. Please sign in or use a different email.',
         );
       }
-      if (err instanceof BadRequestException || err instanceof ConflictException) {
+      if (
+        err instanceof BadRequestException ||
+        err instanceof ConflictException ||
+        err instanceof ServiceUnavailableException
+      ) {
         throw err;
       }
-      return {
-        message: 'Registration successful (Demo Mode)',
-        user: {
-          id: `user-demo-${Date.now()}`,
-          email: normalizedEmail,
-          firstName: data.firstName || 'Demo',
-          lastName: data.lastName || 'User',
-          role: assignedRole,
-        },
-      };
+      throw new ServiceUnavailableException(
+        'Registration failed due to a database error. Please try again.',
+      );
     }
   }
 
@@ -119,24 +121,7 @@ export class AuthService {
       );
     }
 
-    // Offline / Demo Mode Direct Fallback
-    if (!this.prisma.isConnected) {
-      const token = this.jwtService.sign({
-        sub: 'user-demo-1',
-        userId: 'user-demo-1',
-        email,
-        role: selectedRole || 'student',
-      });
-      return {
-        message: 'Login successful (Demo Mode)',
-        accessToken: token,
-        user: {
-          id: 'user-demo-1',
-          email,
-          role: selectedRole || 'student',
-        },
-      };
-    }
+    this.assertDatabaseAvailable();
 
     let user: any = null;
     try {
@@ -144,21 +129,9 @@ export class AuthService {
         where: { email },
       });
     } catch {
-      const token = this.jwtService.sign({
-        sub: 'user-demo-1',
-        userId: 'user-demo-1',
-        email,
-        role: selectedRole || 'student',
-      });
-      return {
-        message: 'Login successful (Demo Mode)',
-        accessToken: token,
-        user: {
-          id: 'user-demo-1',
-          email,
-          role: selectedRole || 'student',
-        },
-      };
+      throw new ServiceUnavailableException(
+        'Login failed due to a database error. Please try again.',
+      );
     }
 
     if (!user) {
@@ -215,29 +188,7 @@ export class AuthService {
     const normalizedEmail = data.email.trim().toLowerCase();
     const requestedRole = (data.requestedRole || 'student').toLowerCase();
 
-    if (!this.prisma.isConnected) {
-      const user = {
-        id: `user-demo-${Date.now()}`,
-        email: normalizedEmail,
-        firstName: data.firstName || 'OAuth',
-        lastName: data.lastName || 'User',
-        role: requestedRole,
-        isNewUser: false,
-        acceptedTermsAt: new Date().toISOString(),
-      };
-      const token = this.jwtService.sign({
-        sub: user.id,
-        userId: user.id,
-        email: user.email,
-        role: requestedRole,
-        provider: data.provider,
-      });
-      return {
-        message: 'OAuth authentication successful (Demo Mode)',
-        accessToken: token,
-        user,
-      };
-    }
+    this.assertDatabaseAvailable();
 
     let user: any = null;
     let isNewUser = false;
@@ -271,13 +222,9 @@ export class AuthService {
         }
       }
     } catch (err: any) {
-      user = {
-        id: `user-demo-${Date.now()}`,
-        email: normalizedEmail,
-        firstName: data.firstName || 'OAuth',
-        lastName: data.lastName || 'User',
-        role: requestedRole,
-      };
+      throw new ServiceUnavailableException(
+        'OAuth authentication failed due to a database error. Please try again.',
+      );
     }
 
     const verifiedRole = (user.role || requestedRole).toLowerCase();
