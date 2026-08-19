@@ -56,6 +56,7 @@ export class JobsController {
    * POST /jobs/sync-public: Scrapes, validates, and stores public jobs into PostgreSQL pool.
    */
   @Post('sync-public')
+  @UseGuards(JwtAuthGuard)
   syncPublicJobs(@Body('url') url?: string) {
     return this.jobsService.syncPublicJobs(url);
   }

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEducationDto } from './dto/create-education.dto';
 import { UpdateEducationDto } from './dto/update-education.dto';
+import { assertOwns } from '../auth/ownership.util';
 
 @Injectable()
 export class EducationService {
@@ -27,7 +28,7 @@ export class EducationService {
     });
   }
 
-  async update(id: string, dto: UpdateEducationDto) {
+  async update(id: string, dto: UpdateEducationDto, requestingUserId: string) {
     const education = await this.prisma.education.findUnique({
       where: { id },
     });
@@ -35,6 +36,7 @@ export class EducationService {
     if (!education) {
       throw new NotFoundException('Education record not found');
     }
+    assertOwns(education.userId, requestingUserId);
 
     return this.prisma.education.update({
       where: { id },
@@ -42,7 +44,7 @@ export class EducationService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, requestingUserId: string) {
     const education = await this.prisma.education.findUnique({
       where: { id },
     });
@@ -50,6 +52,7 @@ export class EducationService {
     if (!education) {
       throw new NotFoundException('Education record not found');
     }
+    assertOwns(education.userId, requestingUserId);
 
     await this.prisma.education.delete({
       where: { id },

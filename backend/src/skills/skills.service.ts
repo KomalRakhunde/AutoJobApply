@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';
+import { assertOwns } from '../auth/ownership.util';
 
 @Injectable()
 export class SkillsService {
@@ -36,10 +37,11 @@ export class SkillsService {
     return created;
   }
 
-  async update(id: string, dto: UpdateSkillDto) {
+  async update(id: string, dto: UpdateSkillDto, requestingUserId: string) {
     const skill = await this.prisma.skill.findUnique({ where: { id } });
 
     if (!skill) throw new NotFoundException('Skill not found');
+    assertOwns(skill.userId, requestingUserId);
 
     return this.prisma.skill.update({
       where: { id },
@@ -47,7 +49,12 @@ export class SkillsService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, requestingUserId: string) {
+    const skill = await this.prisma.skill.findUnique({ where: { id } });
+
+    if (!skill) throw new NotFoundException('Skill not found');
+    assertOwns(skill.userId, requestingUserId);
+
     await this.prisma.skill.delete({
       where: { id },
     });

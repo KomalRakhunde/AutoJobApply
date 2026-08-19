@@ -12,6 +12,7 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { RecruitersService, CreateJobDto } from './recruiters.service';
 import { CandidateSourcingService } from './sourcing.service';
+import { RESUME_UPLOAD_MULTER_OPTIONS } from '../auth/upload.util';
 
 @Controller('recruiters')
 export class RecruitersController {
@@ -49,7 +50,7 @@ export class RecruitersController {
   }
 
   @Post('jobs/:id/resumes/bulk-upload')
-  @UseInterceptors(FilesInterceptor('files', 30))
+  @UseInterceptors(FilesInterceptor('files', 30, RESUME_UPLOAD_MULTER_OPTIONS))
   async bulkUploadResumes(
     @Param('id') id: string,
     @UploadedFiles() files: Express.Multer.File[],
