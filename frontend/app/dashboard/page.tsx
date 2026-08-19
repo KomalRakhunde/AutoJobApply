@@ -9,7 +9,6 @@ import { getDisplayName } from '@/utils/utils';
 import { PageShell } from '@/components/layout/page-shell';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Calendar,
@@ -84,22 +83,44 @@ export default function DashboardPage() {
 
   const appsList = Array.isArray(realApplications) ? realApplications : [];
   const totalApplied = appsList.length;
-  const inProgress = appsList.filter(
-    (a) => a.status?.toLowerCase() === 'applied' || a.status?.toLowerCase() === 'assessment' || a.status?.toLowerCase() === 'interview'
-  ).length;
+  // Any status that isn't a terminal outcome (offer/joined/rejected) counts as
+  // still "in progress" - matches how the Application Tracker board buckets
+  // unrecognized statuses (e.g. auto-apply's pending/processing/manual_required)
+  // into the "Applied" column rather than dropping them.
+  const TERMINAL_STATUSES = new Set(['offer', 'joined', 'rejected']);
+  const inProgress = appsList.filter((a) => !TERMINAL_STATUSES.has(a.status?.toLowerCase() || '')).length;
   const interviewApps = appsList.filter((a) => a.status?.toLowerCase() === 'interview');
   const interviewCount = interviewApps.length;
   const offersCount = appsList.filter((a) => a.status?.toLowerCase() === 'offer' || a.status?.toLowerCase() === 'joined').length;
 
-  /* Dynamic Chart data from real applications or default zero volume */
-  const barData = [
-    { month: 'Jan', volume: appsList.filter(a => new Date(a.createdAt).getMonth() === 0).length },
-    { month: 'Feb', volume: appsList.filter(a => new Date(a.createdAt).getMonth() === 1).length },
-    { month: 'Mar', volume: appsList.filter(a => new Date(a.createdAt).getMonth() === 2).length },
-    { month: 'Apr', volume: appsList.filter(a => new Date(a.createdAt).getMonth() === 3).length },
-    { month: 'May', volume: appsList.filter(a => new Date(a.createdAt).getMonth() === 4).length },
-    { month: 'Jun', volume: appsList.filter(a => new Date(a.createdAt).getMonth() === 5).length, active: true },
-  ];
+  /* Dynamic Chart data from real applications, relative to today's actual date */
+  const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const now = new Date();
+
+  const monthlyBarData = Array.from({ length: 6 }).map((_, idx) => {
+    const bucketDate = new Date(now.getFullYear(), now.getMonth() - (5 - idx), 1);
+    const volume = appsList.filter((a) => {
+      const created = new Date(a.createdAt);
+      return created.getFullYear() === bucketDate.getFullYear() && created.getMonth() === bucketDate.getMonth();
+    }).length;
+    return { month: MONTH_NAMES[bucketDate.getMonth()], volume, active: idx === 5 };
+  });
+
+  const weeklyBarData = Array.from({ length: 7 }).map((_, idx) => {
+    const bucketDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - idx));
+    const volume = appsList.filter((a) => {
+      const created = new Date(a.createdAt);
+      return (
+        created.getFullYear() === bucketDate.getFullYear() &&
+        created.getMonth() === bucketDate.getMonth() &&
+        created.getDate() === bucketDate.getDate()
+      );
+    }).length;
+    return { month: DAY_NAMES[bucketDate.getDay()], volume, active: idx === 6 };
+  });
+
+  const barData = chartPeriod === 'weekly' ? weeklyBarData : monthlyBarData;
 
   /* Active Pipeline table rows */
   const pipelineRows = appsList.slice(0, 5).map((a) => ({
@@ -126,7 +147,9 @@ export default function DashboardPage() {
               Welcome back, {formattedUsername}.
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 font-normal mt-0.5">
-              You have {interviewCount + scheduledEventsCount} interviews scheduled this week. Keep the momentum going!
+              {interviewCount + scheduledEventsCount > 0
+                ? `You have ${interviewCount + scheduledEventsCount} interview${interviewCount + scheduledEventsCount === 1 ? '' : 's'} in progress. Keep the momentum going!`
+                : 'Keep applying to unlock more interview opportunities.'}
             </p>
           </div>
 
@@ -161,9 +184,6 @@ export default function DashboardPage() {
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
                 <Send className="h-4 w-4" />
               </div>
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                <TrendingUp className="h-3.5 w-3.5" /> +12%
-              </span>
             </div>
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Applications</p>
@@ -179,9 +199,6 @@ export default function DashboardPage() {
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
                 <Filter className="h-4 w-4" />
               </div>
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                <TrendingUp className="h-3.5 w-3.5" /> +8%
-              </span>
             </div>
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Active Pipeline</p>
@@ -197,9 +214,6 @@ export default function DashboardPage() {
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
                 <Video className="h-4 w-4" />
               </div>
-              <Badge className="bg-rose-600 text-white font-bold text-[10px] px-2 py-0.5 rounded-md">
-                ! Today
-              </Badge>
             </div>
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Interviews</p>
@@ -240,7 +254,7 @@ export default function DashboardPage() {
                   Application Volume
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-normal">
-                  Tracking your outreach effectiveness over the last 6 months
+                  Tracking your outreach effectiveness over the {chartPeriod === 'weekly' ? 'last 7 days' : 'last 6 months'}
                 </p>
               </div>
 
@@ -304,34 +318,24 @@ export default function DashboardPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
-                  AVG. ATS MATCH SCORE
+                  ATS MATCH SCORE
                 </span>
-                <TrendingUp className="h-4 w-4 text-emerald-400" />
+                <TrendingUp className="h-4 w-4 text-slate-500" />
               </div>
 
               <h2 className="text-5xl font-black tracking-tight text-white">
-                84%
+                &mdash;
               </h2>
 
               <p className="text-xs text-slate-400 font-normal leading-relaxed">
-                Your resumes are performing significantly better than the industry average (62%).
+                Run a resume analysis to see your ATS match score here.
               </p>
             </div>
 
             <div className="space-y-4 pt-2 border-t border-slate-800">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-slate-300">Keywords Optimized</span>
-                  <span className="text-emerald-400">92%</span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full w-[92%]" />
-                </div>
-              </div>
-
               <Link href="/resume">
                 <Button variant="outline" className="w-full rounded-xl border-slate-700 bg-slate-900/60 hover:bg-slate-800 text-white font-bold text-xs py-2.5">
-                  View Detailed Resume Analysis
+                  Run Resume Analysis
                 </Button>
               </Link>
             </div>

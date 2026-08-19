@@ -27,3 +27,19 @@ export function useUpdateProfile() {
     },
   });
 }
+
+export interface Skill {
+  id: string;
+  userId: string;
+  name: string;
+  level: string | null;
+}
+
+export function useGetSkills(userId: string | undefined) {
+  return useQuery<Skill[], ApiError>({
+    queryKey: ['skills', userId],
+    queryFn: () => apiRequest<Skill[]>(`/skills/${userId}`, { auth: true }),
+    enabled: !!userId,
+    retry: false,
+  });
+}

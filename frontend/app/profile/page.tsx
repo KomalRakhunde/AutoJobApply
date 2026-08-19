@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppSelector } from '@/store/hooks';
-import { useGetProfile, useUpdateProfile } from '@/hooks/use-profile';
+import { useGetProfile, useUpdateProfile, useGetSkills } from '@/hooks/use-profile';
 import { useGetUser, useUpdateUser } from '@/hooks/use-auth';
 import { PageShell } from '@/components/layout/page-shell';
 import { CandidateJourneyStepper } from '@/components/layout/candidate-journey-stepper';
@@ -46,6 +46,7 @@ export default function ProfilePage() {
   const { toast } = useToast();
 
   const { data: profile } = useGetProfile(userId);
+  const { data: savedSkills } = useGetSkills(userId);
   const updateProfile = useUpdateProfile();
   const updateUser = useUpdateUser();
 
@@ -54,15 +55,7 @@ export default function ProfilePage() {
 
   const [activeTab, setActiveTab] = useState<'domainSkills' | 'personal' | 'masterResume' | 'compensation' | 'portals'>('domainSkills');
   const [targetDomain, setTargetDomain] = useState('Full Stack Development');
-  const [skillsList, setSkillsList] = useState<string[]>([
-    'React',
-    'TypeScript',
-    'Next.js',
-    'Node.js',
-    'NestJS',
-    'PostgreSQL',
-    'Tailwind CSS',
-  ]);
+  const [skillsList, setSkillsList] = useState<string[]>([]);
   const [newSkillInput, setNewSkillInput] = useState('');
   const [masterFileName, setMasterFileName] = useState('Master_Resume_Software_Engineer_2026.pdf');
   const [isUploadingResume, setIsUploadingResume] = useState(false);
@@ -91,6 +84,12 @@ export default function ProfilePage() {
       if (p.location) setLocation(p.location);
     }
   }, [user, profile, u, p]);
+
+  useEffect(() => {
+    if (savedSkills) {
+      setSkillsList(savedSkills.map((s) => s.name));
+    }
+  }, [savedSkills]);
 
   const handleAddSkill = () => {
     if (!newSkillInput.trim()) return;
@@ -155,8 +154,8 @@ export default function ProfilePage() {
       setTimeout(() => {
         setIsUploadingResume(false);
         toast({
-          title: '📄 Resume Uploaded & Parsed!',
-          description: 'AI Engine extracted skills: React, TypeScript, NestJS, Node.js, PostgreSQL.',
+          title: '📄 Resume File Selected',
+          description: `"${file.name}" is ready. Skill extraction is not yet available - add your skills manually below.`,
         });
       }, 1200);
     }
@@ -520,7 +519,7 @@ export default function ProfilePage() {
               <Shield className="h-4 w-4 text-blue-600" /> Security Status
             </div>
             <p className="text-[11px] text-slate-500 font-normal">
-              Two-factor authentication active for candidate account.
+              Two-factor authentication is not yet available for candidate accounts.
             </p>
           </Card>
 
@@ -529,7 +528,7 @@ export default function ProfilePage() {
               <Globe className="h-4 w-4 text-emerald-600" /> Public Profile Link
             </div>
             <p className="text-[11px] text-slate-500 font-normal">
-              applyai.pro/candidate/student
+              Public candidate profile pages are not yet available.
             </p>
           </Card>
 

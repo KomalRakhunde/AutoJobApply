@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import OpenAI from 'openai';
 import * as crypto from 'crypto';
 
@@ -9,6 +9,12 @@ export class OpenRouterService {
   private getClient(): { client: OpenAI; model: string } {
     const groqKey = process.env.GROQ_API_KEY;
     const openRouterKey = process.env.OPENROUTER_API_KEY;
+
+    if (!groqKey && !openRouterKey) {
+      throw new ServiceUnavailableException(
+        'AI service is not configured (missing GROQ_API_KEY / OPENROUTER_API_KEY). This feature is unavailable until an API key is set.',
+      );
+    }
 
     const REQUEST_TIMEOUT_MS = 30000;
 
@@ -34,11 +40,12 @@ export class OpenRouterService {
       };
     }
 
-    // Default fallback to Groq or OpenRouter client
+    // A key is configured but doesn't match either provider's expected prefix -
+    // still attempt the call with whichever key is present.
     return {
       client: new OpenAI({
-        apiKey: groqKey || openRouterKey || 'dummy_key',
-        baseURL: groqKey?.startsWith('gsk_') ? 'https://api.groq.com/openai/v1' : 'https://openrouter.ai/api/v1',
+        apiKey: groqKey || openRouterKey,
+        baseURL: groqKey ? 'https://api.groq.com/openai/v1' : 'https://openrouter.ai/api/v1',
         timeout: REQUEST_TIMEOUT_MS,
       }),
       model: 'llama-3.3-70b-versatile',
@@ -73,9 +80,14 @@ export class OpenRouterService {
       }
 
       return responseText;
-    } catch (err) {
+    } catch (err: any) {
       console.error('LLM Service API Error:', err);
-      throw err;
+      if (err instanceof ServiceUnavailableException) {
+        throw err;
+      }
+      throw new ServiceUnavailableException(
+        `AI service request failed: ${err?.message || 'unknown error'}`,
+      );
     }
   }
 }
