@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
+import { assertOwns } from '../auth/ownership.util';
 
 @Injectable()
 export class ApplicationsService {
@@ -11,6 +12,14 @@ export class ApplicationsService {
 
   async create(userId: string, dto: CreateApplicationDto) {
     let targetResumeId = dto.resumeId;
+
+    if (targetResumeId) {
+      // A caller-supplied resumeId must actually belong to this user.
+      const resume = await this.prisma.resume.findUnique({ where: { id: targetResumeId } });
+      if (!resume || resume.userId !== userId) {
+        targetResumeId = undefined;
+      }
+    }
 
     if (!targetResumeId && userId) {
       try {
@@ -76,7 +85,7 @@ export class ApplicationsService {
     }));
   }
 
-  async update(id: string, dto: UpdateApplicationDto) {
+  async update(id: string, dto: UpdateApplicationDto, requestingUserId: string) {
     const application = await this.prisma.application.findUnique({
       where: { id },
     });
@@ -84,6 +93,7 @@ export class ApplicationsService {
     if (!application) {
       throw new NotFoundException('Application not found');
     }
+    assertOwns(application.userId, requestingUserId);
 
     return this.prisma.application.update({
       where: { id },
@@ -91,7 +101,16 @@ export class ApplicationsService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, requestingUserId: string) {
+    const application = await this.prisma.application.findUnique({
+      where: { id },
+    });
+
+    if (!application) {
+      throw new NotFoundException('Application not found');
+    }
+    assertOwns(application.userId, requestingUserId);
+
     await this.prisma.application.delete({
       where: { id },
     });

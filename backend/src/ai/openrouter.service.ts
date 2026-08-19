@@ -10,11 +10,14 @@ export class OpenRouterService {
     const groqKey = process.env.GROQ_API_KEY;
     const openRouterKey = process.env.OPENROUTER_API_KEY;
 
+    const REQUEST_TIMEOUT_MS = 30000;
+
     if (groqKey && groqKey.startsWith('gsk_')) {
       return {
         client: new OpenAI({
           apiKey: groqKey,
           baseURL: 'https://api.groq.com/openai/v1',
+          timeout: REQUEST_TIMEOUT_MS,
         }),
         model: 'llama-3.3-70b-versatile',
       };
@@ -25,6 +28,7 @@ export class OpenRouterService {
         client: new OpenAI({
           apiKey: openRouterKey,
           baseURL: 'https://openrouter.ai/api/v1',
+          timeout: REQUEST_TIMEOUT_MS,
         }),
         model: 'meta-llama/llama-3.3-70b-instruct:free',
       };
@@ -35,6 +39,7 @@ export class OpenRouterService {
       client: new OpenAI({
         apiKey: groqKey || openRouterKey || 'dummy_key',
         baseURL: groqKey?.startsWith('gsk_') ? 'https://api.groq.com/openai/v1' : 'https://openrouter.ai/api/v1',
+        timeout: REQUEST_TIMEOUT_MS,
       }),
       model: 'llama-3.3-70b-versatile',
     };

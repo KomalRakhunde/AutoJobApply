@@ -40,8 +40,15 @@ export class CandidateSourcingService {
     const serpApiKey = process.env.SERP_API_KEY || process.env.GOOGLE_SEARCH_API_KEY;
     if (serpApiKey) {
       try {
-        const query = encodeURIComponent(`site:linkedin.com/in/ "${roleTitle}" "${location}"`);
-        const searchRes = await fetch(`https://serpapi.com/search.json?q=${query}&api_key=${serpApiKey}`);
+        // SerpApi's public REST API only accepts the key as a query parameter
+        // (no header-based auth option) - keep it out of anything we log.
+        const searchParams = new URLSearchParams({
+          q: `site:linkedin.com/in/ "${roleTitle}" "${location}"`,
+          api_key: serpApiKey,
+        });
+        const searchRes = await fetch(`https://serpapi.com/search.json?${searchParams.toString()}`, {
+          signal: AbortSignal.timeout(15000),
+        });
         if (searchRes.ok) {
           const serpData = await searchRes.json();
           if (serpData.organic_results && Array.isArray(serpData.organic_results)) {
@@ -88,11 +95,12 @@ export class CandidateSourcingService {
       const isTopMatch = calculatedScore >= passingScore;
 
       // Persist Candidate into Prisma Database
+      const resolvedCandidateName = extractedProfile.name || 'Sourced Web Candidate';
       const candidate = await this.prisma.candidate.create({
         data: {
           jobPostingId: jobPosting.id,
-          name: extractedProfile.name || 'Sourced Web Candidate',
-          email: `${extractedProfile.name.toLowerCase().replace(/[^a-z0-9]/g, '.')}@public-sourced.dev`,
+          name: resolvedCandidateName,
+          email: `${resolvedCandidateName.toLowerCase().replace(/[^a-z0-9]/g, '.')}@public-sourced.dev`,
           phone: '+1 (555) ' + Math.floor(1000000 + Math.random() * 9000000),
           skills: candidateSkills,
           experience: [
@@ -102,7 +110,7 @@ export class CandidateSourcingService {
               duration: `${extractedProfile.experienceYears || 3} years`,
             },
           ],
-          rawText: extractedProfile.bio || `Extracted profile for ${extractedProfile.name}`,
+          rawText: extractedProfile.bio || `Extracted profile for ${resolvedCandidateName}`,
           currentStage: isTopMatch ? 'Shortlisted' : 'Screened',
           status: isTopMatch ? 'SHORTLISTED' : 'NEW',
         },
@@ -135,16 +143,9 @@ export class CandidateSourcingService {
             triggeredBy: 'auto',
           });
           interviewSession = sessionResult.session;
-
-          await this.prisma.outreachLog.create({
-            data: {
-              candidateId: candidate.id,
-              channel: 'EMAIL',
-              status: 'DELIVERED',
-              templateUsed: 'SHORTLISTED_INVITATION',
-              messageBody: `Hi ${candidate.name}, your public engineering profile matched our ${jobPosting.title} position (${calculatedScore}% match score). Join your automated Round 1 AI screening session here: ${sessionResult.joinUrl}`,
-            },
-          }).catch(() => {});
+          // Note: createInterviewSession() already writes an accurate OutreachLog
+          // entry (SENT/FAILED) based on the real outreach outcome - do not
+          // duplicate it here with a hardcoded 'DELIVERED' status.
         } catch (err: any) {
           this.logger.error(`[Production Sourcing] Error scheduling interview session: ${err?.message}`);
         }

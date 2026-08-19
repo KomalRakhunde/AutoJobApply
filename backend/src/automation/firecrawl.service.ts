@@ -2,6 +2,7 @@ import { Injectable, Logger, BadRequestException, InternalServerErrorException }
 import { Firecrawl } from '@mendable/firecrawl-js';
 import { JobExtractorService } from './job-extractor.service';
 import { JobValidatorService } from './job-validator.service';
+import { assertPublicHttpUrl } from './url-safety.util';
 
 export interface ScrapedJob {
   title: string;
@@ -73,6 +74,7 @@ export class FirecrawlService {
    * Scrapes raw page content from target URL using Firecrawl API.
    */
   async scrapeUrl(targetUrl: string): Promise<string> {
+    await assertPublicHttpUrl(targetUrl);
     const client = this.getClient();
     this.logger.log(`[Firecrawl] Scraping raw markdown from URL: ${targetUrl}`);
 
@@ -132,6 +134,7 @@ export class FirecrawlService {
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({ query, limit }),
+        signal: AbortSignal.timeout(20000),
       });
 
       if (response.ok) {

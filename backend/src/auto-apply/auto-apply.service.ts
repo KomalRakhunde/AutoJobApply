@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AutoApplyStatus } from './auto-apply.enum';
+import { assertOwns } from '../auth/ownership.util';
 
 export interface ApplicationExecutionContext {
   applicationId: string;
@@ -27,7 +28,7 @@ export class AutoApplyService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async executeApplication(applicationId: string): Promise<ApplicationExecutionContext> {
+  async executeApplication(applicationId: string, requestingUserId: string): Promise<ApplicationExecutionContext> {
     this.logger.log(`[AutoApply] Starting application execution for ID: ${applicationId}`);
 
     const application = await this.prisma.application.findUnique({
@@ -42,6 +43,7 @@ export class AutoApplyService {
     if (!application) {
       throw new NotFoundException(`Application with ID ${applicationId} not found`);
     }
+    assertOwns(application.userId, requestingUserId);
 
     const applyUrl = application.job?.applyUrl;
 

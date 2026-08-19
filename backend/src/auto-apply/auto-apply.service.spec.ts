@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AutoApplyService } from './auto-apply.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -30,7 +30,7 @@ describe('AutoApplyService', () => {
 
   it('should throw NotFoundException if application does not exist', async () => {
     mockPrisma.application.findUnique.mockResolvedValue(null);
-    await expect(service.executeApplication('app-123')).rejects.toThrow(
+    await expect(service.executeApplication('app-123', 'user-1')).rejects.toThrow(
       NotFoundException,
     );
   });
@@ -38,6 +38,7 @@ describe('AutoApplyService', () => {
   it('should throw BadRequestException and update status to FAILED if applyUrl is missing', async () => {
     mockPrisma.application.findUnique.mockResolvedValue({
       id: 'app-123',
+      userId: 'user-1',
       job: { title: 'Engineer', company: 'Acme', applyUrl: null },
     });
     mockPrisma.application.update.mockResolvedValue({
@@ -45,7 +46,7 @@ describe('AutoApplyService', () => {
       status: AutoApplyStatus.FAILED,
     });
 
-    await expect(service.executeApplication('app-123')).rejects.toThrow(
+    await expect(service.executeApplication('app-123', 'user-1')).rejects.toThrow(
       BadRequestException,
     );
     expect(mockPrisma.application.update).toHaveBeenCalledWith({
@@ -57,6 +58,7 @@ describe('AutoApplyService', () => {
   it('should throw BadRequestException and update status to FAILED if applyUrl is not HTTP/HTTPS', async () => {
     mockPrisma.application.findUnique.mockResolvedValue({
       id: 'app-123',
+      userId: 'user-1',
       job: { title: 'Engineer', company: 'Acme', applyUrl: 'ftp://invalid-url.com' },
     });
     mockPrisma.application.update.mockResolvedValue({
@@ -64,13 +66,25 @@ describe('AutoApplyService', () => {
       status: AutoApplyStatus.FAILED,
     });
 
-    await expect(service.executeApplication('app-123')).rejects.toThrow(
+    await expect(service.executeApplication('app-123', 'user-1')).rejects.toThrow(
       BadRequestException,
     );
     expect(mockPrisma.application.update).toHaveBeenCalledWith({
       where: { id: 'app-123' },
       data: { status: AutoApplyStatus.FAILED },
     });
+  });
+
+  it('should throw ForbiddenException if the application belongs to a different user', async () => {
+    mockPrisma.application.findUnique.mockResolvedValue({
+      id: 'app-123',
+      userId: 'owner-user',
+      job: { title: 'Engineer', company: 'Acme', applyUrl: 'https://careers.acme.com/apply/1' },
+    });
+
+    await expect(service.executeApplication('app-123', 'someone-else')).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('should transition to PROCESSING then MANUAL_REQUIRED, and NOT SUBMITTED', async () => {
@@ -92,7 +106,7 @@ describe('AutoApplyService', () => {
       .mockResolvedValueOnce({ ...mockApp, status: AutoApplyStatus.PROCESSING })
       .mockResolvedValueOnce({ ...mockApp, status: AutoApplyStatus.MANUAL_REQUIRED });
 
-    const result = await service.executeApplication('app-999');
+    const result = await service.executeApplication('app-999', 'user-1');
 
     expect(mockPrisma.application.update).toHaveBeenNthCalledWith(1, {
       where: { id: 'app-999' },

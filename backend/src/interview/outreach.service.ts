@@ -3,6 +3,16 @@ import sgMail from '@sendgrid/mail';
 import twilio from 'twilio';
 import nodemailer from 'nodemailer';
 
+function escapeHtml(input: string): string {
+  if (!input) return '';
+  return String(input)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 @Injectable()
 export class OutreachService {
   private readonly logger = new Logger(OutreachService.name);
@@ -33,30 +43,37 @@ export class OutreachService {
     } = options;
     const results = { emailSent: false, whatsappSent: false, errors: [] as string[] };
 
+    // candidateName in particular can originate from an unmoderated, publicly
+    // scraped web profile - escape everything interpolated into the HTML body.
+    const safeCandidateName = escapeHtml(candidateName);
+    const safeJobTitle = escapeHtml(jobTitle);
+    const safeCompanyName = escapeHtml(companyName);
+    const safeJoinUrl = escapeHtml(joinUrl);
+
     const subjectText = `Congratulations! Interview Invitation: ${jobTitle} at ${companyName}`;
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
         <div style="text-align: center; padding-bottom: 20px; border-b: 1px solid #f1f5f9;">
-          <h2 style="color: #4f46e5; margin: 0; font-size: 22px;">🎉 Congratulations, ${candidateName}!</h2>
+          <h2 style="color: #4f46e5; margin: 0; font-size: 22px;">🎉 Congratulations, ${safeCandidateName}!</h2>
           <p style="color: #64748b; font-size: 14px; margin-top: 4px;">You have been selected for the Next Round</p>
         </div>
 
         <div style="padding: 20px 0; color: #334155; font-size: 15px; line-height: 1.6;">
-          <p>We reviewed your resume and application for the position of <strong>${jobTitle}</strong> at <strong>${companyName}</strong>.</p>
+          <p>We reviewed your resume and application for the position of <strong>${safeJobTitle}</strong> at <strong>${safeCompanyName}</strong>.</p>
           <p>Based on your ATS qualification score, you have been selected for an autonomous <strong>AI Voice Technical Screening Interview</strong> (${maxDurationMinutes} minutes max).</p>
-          
+
           <div style="margin: 28px 0; text-align: center;">
-            <a href="${joinUrl}" style="background-color: #4f46e5; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 15px; display: inline-block; box-shadow: 0 4px 12px rgba(79,70,229,0.3);">
+            <a href="${safeJoinUrl}" style="background-color: #4f46e5; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 15px; display: inline-block; box-shadow: 0 4px 12px rgba(79,70,229,0.3);">
               🚀 Start AI Voice Interview
             </a>
           </div>
 
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin: 20px 0; font-size: 13px;">
             <p style="margin: 0 0 8px 0; font-weight: bold; color: #475569;">Interview Session Summary:</p>
-            <p style="margin: 4px 0;"><strong>Role:</strong> ${jobTitle}</p>
-            <p style="margin: 4px 0;"><strong>Company:</strong> ${companyName}</p>
+            <p style="margin: 4px 0;"><strong>Role:</strong> ${safeJobTitle}</p>
+            <p style="margin: 4px 0;"><strong>Company:</strong> ${safeCompanyName}</p>
             <p style="margin: 4px 0;"><strong>Scheduled Time:</strong> Next Tuesday, 10:00 AM</p>
-            <p style="margin: 4px 0;"><strong>Direct Join Link:</strong> <a href="${joinUrl}" style="color: #4f46e5;">${joinUrl}</a></p>
+            <p style="margin: 4px 0;"><strong>Direct Join Link:</strong> <a href="${safeJoinUrl}" style="color: #4f46e5;">${safeJoinUrl}</a></p>
           </div>
 
           <p style="font-size: 13px; color: #64748b;">Please ensure your microphone is enabled before joining.</p>
@@ -114,8 +131,10 @@ export class OutreachService {
       }
     }
 
-    // 3. Fallback: Ethereal/Simulated Outbound with Live Web Preview URL
-    if (!results.emailSent) {
+    // 3. Dev-only fallback: Ethereal test inbox, purely for local development.
+    // This never reaches the real candidate, so it must never be reported as delivered
+    // outside of a non-production environment.
+    if (!results.emailSent && process.env.NODE_ENV !== 'production') {
       try {
         const testAccount = await nodemailer.createTestAccount();
         const transporter = nodemailer.createTransport({
@@ -135,16 +154,21 @@ export class OutreachService {
           html: htmlBody,
         });
 
-        results.emailSent = true;
         const previewUrl = nodemailer.getTestMessageUrl(info);
-        this.logger.log(`[REAL EMAIL PREVIEW GENERATED] Selection Email sent to target ${candidateEmail}!`);
+        this.logger.warn(
+          `[DEV-ONLY TEST INBOX] Email did NOT reach ${candidateEmail} - captured in Ethereal test inbox instead.`,
+        );
         if (previewUrl) {
-          this.logger.log(`🔗 Live Web Email Preview URL: ${previewUrl}`);
+          this.logger.log(`🔗 Ethereal preview URL (dev only): ${previewUrl}`);
         }
-      } catch (simErr) {
-        this.logger.log(`[SIMULATED DISPATCH] Email to ${candidateEmail}: Join link -> ${joinUrl}`);
-        results.emailSent = true;
+        results.errors.push(`Real email delivery not configured; dev preview only: ${previewUrl || 'n/a'}`);
+      } catch (simErr: any) {
+        results.errors.push(`Ethereal dev fallback also failed: ${simErr?.message || simErr}`);
       }
+    }
+
+    if (!results.emailSent) {
+      this.logger.error(`Interview outreach email to ${candidateEmail} was NOT delivered.`);
     }
 
     // 4. Send WhatsApp via Twilio Sandbox if configured

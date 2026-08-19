@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCertificationDto } from './dto/create-certification.dto';
 import { UpdateCertificationDto } from './dto/update-certification.dto';
+import { assertOwns } from '../auth/ownership.util';
 
 @Injectable()
 export class CertificationService {
@@ -20,7 +21,7 @@ export class CertificationService {
     });
   }
 
-  async update(id: string, dto: UpdateCertificationDto) {
+  async update(id: string, dto: UpdateCertificationDto, requestingUserId: string) {
     const certification = await this.prisma.certification.findUnique({
       where: { id },
     });
@@ -28,6 +29,7 @@ export class CertificationService {
     if (!certification) {
       throw new NotFoundException('Certification not found');
     }
+    assertOwns(certification.userId, requestingUserId);
 
     return this.prisma.certification.update({
       where: { id },
@@ -35,7 +37,7 @@ export class CertificationService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, requestingUserId: string) {
     const certification = await this.prisma.certification.findUnique({
       where: { id },
     });
@@ -43,6 +45,7 @@ export class CertificationService {
     if (!certification) {
       throw new NotFoundException('Certification not found');
     }
+    assertOwns(certification.userId, requestingUserId);
 
     await this.prisma.certification.delete({
       where: { id },

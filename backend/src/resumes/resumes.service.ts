@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateResumeDto } from './dto/create-resume.dto';
 import { UpdateResumeDto } from './dto/update-resume.dto';
+import { assertOwns } from '../auth/ownership.util';
 
 @Injectable()
 export class ResumesService {
@@ -23,7 +24,7 @@ export class ResumesService {
     });
   }
 
-  async update(id: string, dto: UpdateResumeDto) {
+  async update(id: string, dto: UpdateResumeDto, requestingUserId: string) {
     const resume = await this.prisma.resume.findUnique({
       where: { id },
     });
@@ -31,6 +32,7 @@ export class ResumesService {
     if (!resume) {
       throw new NotFoundException('Resume not found');
     }
+    assertOwns(resume.userId, requestingUserId);
 
     return this.prisma.resume.update({
       where: { id },
@@ -38,7 +40,16 @@ export class ResumesService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string, requestingUserId: string) {
+    const resume = await this.prisma.resume.findUnique({
+      where: { id },
+    });
+
+    if (!resume) {
+      throw new NotFoundException('Resume not found');
+    }
+    assertOwns(resume.userId, requestingUserId);
+
     await this.prisma.resume.delete({
       where: { id },
     });
