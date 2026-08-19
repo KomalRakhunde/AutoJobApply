@@ -13,8 +13,24 @@ const loadInitial = (): AuthState => {
     return { token: null, user: null, status: 'idle', isAuthenticated: false };
   }
   try {
-    const token = localStorage.getItem('applyai_token');
-    const userJson = localStorage.getItem('applyai_user');
+    let token = localStorage.getItem('applyai_token');
+    let userJson = localStorage.getItem('applyai_user');
+
+    // OAuth callbacks are server-side route handlers — they can only set
+    // cookies, never localStorage. Fall back to the cookies they set so a
+    // fresh Google/LinkedIn/Microsoft login hydrates the real profile
+    // instead of leaving user state empty until the next manual login.
+    if (!token || !userJson) {
+      const tokenMatch = document.cookie.match(/(?:^|; )applyai_token=([^;]+)/);
+      const userMatch = document.cookie.match(/(?:^|; )applyai_user=([^;]+)/);
+      if (tokenMatch) token = decodeURIComponent(tokenMatch[1]);
+      if (userMatch) userJson = decodeURIComponent(userMatch[1]);
+      if (token && userJson) {
+        localStorage.setItem('applyai_token', token);
+        localStorage.setItem('applyai_user', userJson);
+      }
+    }
+
     let user: (Pick<User, 'id' | 'email'> & { role?: UserRole }) | null = null;
     if (userJson) {
       try {

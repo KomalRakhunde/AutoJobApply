@@ -98,8 +98,9 @@ export async function GET(request: NextRequest) {
     });
 
     let verifiedRole = requestedRole;
+    let verifiedUserId = `user-google-${userData.sub || Date.now()}`;
     let jwtToken = generateValidJwt({
-      userId: `user-google-${userData.sub || Date.now()}`,
+      userId: verifiedUserId,
       email: verifiedEmail,
       role: requestedRole,
       provider: 'google',
@@ -110,10 +111,23 @@ export async function GET(request: NextRequest) {
     if (backendRes.ok) {
       const data = await backendRes.json();
       verifiedRole = (data.user?.role || requestedRole).toLowerCase();
+      verifiedUserId = data.user?.id || verifiedUserId;
       jwtToken = data.accessToken || jwtToken;
       isNewUser = data.user?.isNewUser ?? false;
       acceptedTermsAt = data.user?.acceptedTermsAt ?? null;
     }
+
+    // Carried to the client so the app can hydrate Redux/localStorage with the
+    // real authenticated profile — cookies alone only gate route access.
+    // NextResponse's cookie serializer URI-encodes the value itself —
+    // encoding it again here would leave it double-encoded on the client.
+    const clientUserCookie = JSON.stringify({
+      id: verifiedUserId,
+      email: verifiedEmail,
+      firstName,
+      lastName,
+      role: verifiedRole,
+    });
 
     if (isNewUser || !acceptedTermsAt) {
       const consentUrl = new URL(`/onboarding/consent`, request.url);
@@ -136,6 +150,13 @@ export async function GET(request: NextRequest) {
         path: '/',
         maxAge: 60 * 60 * 24 * 7,
       });
+      response.cookies.set('applyai_user', clientUserCookie, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7,
+      });
       return response;
     }
 
@@ -151,6 +172,13 @@ export async function GET(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 7,
     });
     response.cookies.set('applyai_role', verifiedRole, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+    });
+    response.cookies.set('applyai_user', clientUserCookie, {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
