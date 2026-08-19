@@ -91,6 +91,108 @@
     --chart-4: 38 80% 55%;
     --chart-5: 280 60% 60%;
   }
+
+  /* ================================================================
+     Per-portal identity — scoped by [data-portal] on the shell wrapper.
+     Student uses the default root palette (indigo) above; the other
+     three portals override accent + radius so shared components
+     (buttons, inputs, cards) automatically pick up a distinct look.
+     ================================================================ */
+
+  /* Recruiter — deep corporate blue, structured/business.
+     Slightly cooler background tint + tighter radius reads as
+     "spreadsheet-adjacent" rather than "consumer app". */
+  [data-portal='recruiter'] {
+    --background: 218 33% 97%;
+    --foreground: 222 39% 14%;
+    --card: 0 0% 100%;
+    --primary: 224 64% 42%;
+    --primary-foreground: 0 0% 100%;
+    --primary-soft: 224 64% 50%;
+    --accent: 206 72% 40%;
+    --accent-foreground: 0 0% 100%;
+    --border: 220 24% 88%;
+    --ring: 224 64% 42%;
+    --radius: 0.375rem;
+  }
+  .dark[data-portal='recruiter'] {
+    --background: 222 32% 10%;
+    --foreground: 218 30% 94%;
+    --card: 222 28% 13%;
+    --primary: 217 85% 64%;
+    --primary-foreground: 222 47% 9%;
+    --accent: 206 70% 55%;
+    --border: 222 24% 20%;
+    --ring: 217 85% 64%;
+  }
+
+  /* Admin — deep forest teal, operational console.
+     Slightly warmer neutral background + dot texture on content
+     signals "monitoring surface" rather than plain SaaS card grid. */
+  [data-portal='admin'] {
+    --background: 150 20% 97%;
+    --foreground: 160 30% 12%;
+    --card: 0 0% 100%;
+    --primary: 161 78% 24%;
+    --primary-foreground: 0 0% 100%;
+    --primary-soft: 161 78% 30%;
+    --accent: 171 55% 32%;
+    --accent-foreground: 0 0% 100%;
+    --border: 155 20% 87%;
+    --ring: 161 78% 24%;
+    --radius: 0.375rem;
+  }
+  .dark[data-portal='admin'] {
+    --background: 160 22% 8%;
+    --foreground: 150 20% 93%;
+    --card: 160 20% 11%;
+    --primary: 158 65% 44%;
+    --primary-foreground: 158 40% 7%;
+    --accent: 171 50% 45%;
+    --border: 160 18% 18%;
+    --ring: 158 65% 44%;
+  }
+
+  /* Super Admin — warm gold-on-charcoal "command center" identity.
+     Applies regardless of the user's light/dark toggle since the shell
+     forces a local .dark scope for this portal: the one deliberately
+     bold move, kept isolated to this single role. */
+  [data-portal='super_admin'],
+  .dark[data-portal='super_admin'] {
+    --background: 240 16% 7%;
+    --foreground: 42 22% 92%;
+
+    --card: 240 14% 11%;
+    --card-foreground: 42 22% 92%;
+
+    --popover: 240 14% 11%;
+    --popover-foreground: 42 22% 92%;
+
+    --primary: 38 82% 56%;
+    --primary-foreground: 28 45% 9%;
+    --primary-soft: 38 82% 62%;
+
+    --secondary: 240 12% 16%;
+    --secondary-foreground: 42 16% 85%;
+
+    --muted: 240 12% 15%;
+    --muted-foreground: 240 7% 63%;
+
+    --accent: 38 82% 56%;
+    --accent-foreground: 28 45% 9%;
+
+    --border: 240 12% 19%;
+    --input: 240 12% 21%;
+    --ring: 38 82% 56%;
+
+    --chart-1: 38 82% 56%;
+    --chart-2: 199 75% 55%;
+    --chart-3: 150 55% 45%;
+    --chart-4: 280 55% 62%;
+    --chart-5: 0 60% 58%;
+
+    --radius: 0.75rem;
+  }
 }
 
 @layer base {

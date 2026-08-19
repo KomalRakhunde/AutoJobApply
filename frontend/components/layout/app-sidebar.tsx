@@ -174,24 +174,27 @@ export function AppSidebar({
 
   return (
     <aside
-      className={`h-full flex flex-col border-r border-slate-200/80 bg-white dark:border-slate-800 dark:bg-slate-900 transition-all duration-300 ease-in-out ${
+      className={`h-full flex flex-col border-r border-border bg-card transition-all duration-300 ease-in-out ${
         isCollapsed ? 'w-16' : 'w-60'
       } ${
         isOpenMobile ? 'fixed inset-y-0 left-0 z-50 translate-x-0 w-64' : 'translate-x-0'
       }`}
     >
       {/* Top Sidebar Header */}
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-100 px-4 dark:border-slate-800/60 pt-safe">
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-border/60 px-4 pt-safe">
         <Link href={`/dashboard/${role}`} className="flex items-center gap-3 overflow-hidden">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-500/20">
+          <div
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius)] text-primary-foreground shadow-md"
+            style={{ background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))', boxShadow: '0 4px 14px 0 hsl(var(--primary) / 0.3)' }}
+          >
             <Sparkles className="h-5 w-5" />
           </div>
           {(!isCollapsed || isOpenMobile) && (
             <div className="flex flex-col min-w-0 transition-opacity">
-              <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white truncate">
+              <span className="text-base font-bold tracking-tight text-foreground truncate">
                 ApplyAI
               </span>
-              <span className="text-[10px] font-medium text-slate-400 truncate">
+              <span className="text-[10px] font-medium text-muted-foreground truncate">
                 Multi-Role Platform
               </span>
             </div>
@@ -203,7 +206,7 @@ export function AppSidebar({
             variant="ghost"
             size="icon"
             onClick={onToggleCollapse}
-            className="hidden lg:flex h-8 w-8 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            className="hidden lg:flex h-8 w-8 text-muted-foreground hover:text-foreground"
             title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           >
             <ChevronLeft className={`h-4 w-4 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} />
@@ -215,7 +218,7 @@ export function AppSidebar({
             variant="ghost"
             size="icon"
             onClick={onCloseMobile}
-            className="flex lg:hidden h-9 w-9 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-xl touch-target"
+            className="flex lg:hidden h-9 w-9 text-muted-foreground hover:text-foreground rounded-[var(--radius)] touch-target"
             title="Close Menu"
           >
             <X className="h-5 w-5" />
@@ -376,19 +379,19 @@ export function AppSidebar({
                     }
                     onCloseMobile?.();
                   }}
-                  className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all ${
+                  className={`group flex items-center gap-3 rounded-[var(--radius)] px-3 py-2.5 text-xs font-semibold transition-all ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-white'
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                      : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'
                   }`}
                   title={isCollapsed ? item.label : undefined}
                 >
-                  <Icon className={`h-4 w-4 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <Icon className={`h-4 w-4 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
                   {(!isCollapsed || isOpenMobile) && (
                     <span className="truncate flex-1">{item.label}</span>
                   )}
                   {(!isCollapsed || isOpenMobile) && item.badge && !itemIsPinned && (
-                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
+                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold ${isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                       {item.badge}
                     </span>
                   )}
@@ -405,7 +408,7 @@ export function AppSidebar({
                     className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 transition-all ${
                       itemIsPinned
                         ? 'text-amber-500 opacity-100 hover:text-amber-600'
-                        : 'text-slate-400 opacity-0 group-hover/nav:opacity-100 hover:text-indigo-600 dark:hover:text-indigo-400'
+                        : 'text-muted-foreground opacity-0 group-hover/nav:opacity-100 hover:text-primary'
                     }`}
                     title={itemIsPinned ? 'Pinned to Dashboard (Click to unpin)' : 'Pin to Dashboard'}
                   >
@@ -435,19 +438,19 @@ export function AppSidebar({
                 <Link
                   href={item.href}
                   onClick={onCloseMobile}
-                  className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all ${
+                  className={`group flex items-center gap-3 rounded-[var(--radius)] px-3 py-2.5 text-xs font-semibold transition-all ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-white'
+                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
+                      : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'
                   }`}
                   title={isCollapsed ? item.label : undefined}
                 >
-                  <Icon className={`h-4 w-4 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} />
+                  <Icon className={`h-4 w-4 shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
                   {(!isCollapsed || isOpenMobile) && (
                     <span className="truncate flex-1">{item.label}</span>
                   )}
                   {(!isCollapsed || isOpenMobile) && item.badge && !itemIsPinned && (
-                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-indigo-600 dark:bg-slate-800 dark:text-indigo-400'}`}>
+                    <span className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold ${isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-primary'}`}>
                       {item.badge}
                     </span>
                   )}
@@ -464,7 +467,7 @@ export function AppSidebar({
                     className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 transition-all ${
                       itemIsPinned
                         ? 'text-amber-500 opacity-100 hover:text-amber-600'
-                        : 'text-slate-400 opacity-0 group-hover/nav:opacity-100 hover:text-indigo-600 dark:hover:text-indigo-400'
+                        : 'text-muted-foreground opacity-0 group-hover/nav:opacity-100 hover:text-primary'
                     }`}
                     title={itemIsPinned ? 'Pinned to Dashboard (Click to unpin)' : 'Pin to Dashboard'}
                   >
@@ -479,12 +482,12 @@ export function AppSidebar({
         {/* Pro Plan Status Card for Student Role */}
         {role === 'student' && (!isCollapsed || isOpenMobile) && (
           <div className="pt-2">
-            <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 dark:border-indigo-900/50 dark:bg-indigo-950/30 space-y-1">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-300">
-                <Zap className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 fill-indigo-400" />
+            <div className="rounded-[var(--radius)] border border-primary/20 bg-primary/10 p-3 space-y-1">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                <Zap className="h-3.5 w-3.5 text-primary fill-primary/40" />
                 <span>PRO PLAN ACTIVE</span>
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+              <p className="text-[10px] text-muted-foreground leading-tight">
                 Unlimited AI submissions & ATS resume audits enabled.
               </p>
             </div>
@@ -493,23 +496,26 @@ export function AppSidebar({
       </div>
 
       {/* Bottom Profile Badge & Author Credit */}
-      <div className="border-t border-slate-100 p-3 dark:border-slate-800/60">
+      <div className="border-t border-border/60 p-3">
         <div className="flex items-center justify-between gap-2">
           <Link href="/profile" onClick={onCloseMobile} className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white font-bold text-xs">
+            <div
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-primary-foreground font-bold text-xs"
+              style={{ background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))' }}
+            >
               {initials}
             </div>
             {(!isCollapsed || isOpenMobile) && (
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <p className="truncate text-xs font-bold text-slate-900 dark:text-white">
+                  <p className="truncate text-xs font-bold text-foreground">
                     {username}
                   </p>
                   <span className={`rounded border px-1.5 py-0.2 text-[9px] font-bold ${roleBadge.color}`}>
                     {roleBadge.label}
                   </span>
                 </div>
-                <p className="truncate text-[10px] text-slate-400">
+                <p className="truncate text-[10px] text-muted-foreground">
                   {user?.email ?? 'komal.dharma@applyai.com'}
                 </p>
               </div>
@@ -521,7 +527,7 @@ export function AppSidebar({
                 variant="ghost"
                 size="icon"
                 onClick={handleLogout}
-                className="h-7 w-7 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
+                className="h-7 w-7 text-muted-foreground hover:text-rose-500"
                 title="Log out"
               >
                 <LogOut className="h-3.5 w-3.5" />
@@ -530,9 +536,9 @@ export function AppSidebar({
           )}
         </div>
         {(!isCollapsed || isOpenMobile) && (
-          <div className="px-1 pb-1 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-center mt-2">
-            <p className="text-[9.5px] font-medium text-slate-400 dark:text-slate-500">
-              Designed & Developed by <span className="font-bold text-slate-700 dark:text-slate-300">Komal Rakhunde</span> © 2026
+          <div className="px-1 pb-1 pt-2 border-t border-border/60 text-center mt-2">
+            <p className="text-[9.5px] font-medium text-muted-foreground">
+              Designed & Developed by <span className="font-bold text-foreground/80">Komal Rakhunde</span> © 2026
             </p>
           </div>
         )}

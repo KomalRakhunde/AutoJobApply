@@ -101,6 +101,8 @@ export function PageShell({
 
   const role: UserRole = user?.role ?? 'student';
   const roleBadge = roleBadges[role] || roleBadges.student;
+  const portalTexture =
+    role === 'recruiter' ? 'bg-grid' : role === 'admin' ? 'bg-dots' : '';
 
   const username = getDisplayName(user);
   const initials = getUserInitials(username);
@@ -152,9 +154,12 @@ export function PageShell({
 
   return (
     <AuthGuard>
-      <div className="flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-[#0a0d18] text-slate-900 dark:text-slate-100">
+      <div
+        data-portal={role}
+        className={`flex h-screen w-screen overflow-hidden bg-background text-foreground ${role === 'super_admin' ? 'dark' : ''}`}
+      >
         {/* Sticky Desktop Collapsible Left Sidebar */}
-        <div className="sticky top-0 h-full z-30 shrink-0 hidden lg:block border-r border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#0a0d18] overflow-y-auto">
+        <div className="sticky top-0 h-full z-30 shrink-0 hidden lg:block border-r border-border bg-card overflow-y-auto">
           <AppSidebar
             isCollapsed={isSidebarCollapsed}
             onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
@@ -178,7 +183,7 @@ export function PageShell({
         {/* Main Application Column */}
         <div className="flex flex-1 flex-col h-full min-w-0 overflow-hidden">
           {/* Sticky Top Clean Header Bar */}
-          <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur-md dark:border-slate-800/80 dark:bg-[#0a0d18]/95 sm:px-6 lg:px-8 xl:px-10 pt-safe shadow-sm">
+          <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b-2 border-b-primary/70 bg-card/95 px-4 backdrop-blur-md sm:px-6 lg:px-8 xl:px-10 pt-safe shadow-sm">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               {/* Toggle Sidebar Button */}
               <Button
@@ -191,7 +196,7 @@ export function PageShell({
                     setIsSidebarCollapsed(!isSidebarCollapsed);
                   }
                 }}
-                className="h-10 w-10 text-slate-600 hover:text-slate-900 dark:text-slate-300 shrink-0 touch-target"
+                className="h-10 w-10 text-muted-foreground hover:text-foreground shrink-0 touch-target"
                 aria-label="Toggle sidebar menu"
                 title="Toggle Sidebar"
               >
@@ -201,7 +206,7 @@ export function PageShell({
               {/* Functional Search Bar with Instant Command Palette */}
               <div ref={searchRef} className="relative max-w-md w-full min-w-0 flex-1">
                 <form onSubmit={handleSearchSubmit} className="relative">
-                  <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     ref={inputRef}
                     value={searchQuery}
@@ -211,7 +216,7 @@ export function PageShell({
                     }}
                     onFocus={() => setSearchOpen(true)}
                     placeholder="Search jobs, tools, ⌘K..."
-                    className="h-10 w-full rounded-xl border-slate-200 bg-slate-50/90 pl-9 pr-10 text-xs focus:bg-white focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-800 dark:bg-slate-800/60 dark:focus:bg-slate-800"
+                    className="h-10 w-full rounded-[var(--radius)] border-border bg-muted/60 pl-9 pr-10 text-xs focus:bg-card focus:ring-2 focus:ring-primary/20"
                   />
                   {searchQuery ? (
                     <button
@@ -230,13 +235,13 @@ export function PageShell({
 
                 {/* Instant Search Results Dropdown */}
                 {searchOpen && (
-                  <div className="absolute left-0 right-0 top-12 z-50 overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-2 shadow-xl dark:border-slate-800 dark:bg-slate-900 animate-scale-in w-[90vw] sm:w-full max-w-md">
-                    <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <div className="absolute left-0 right-0 top-12 z-50 overflow-hidden rounded-[var(--radius)] border border-border bg-card p-2 shadow-xl animate-scale-in w-[90vw] sm:w-full max-w-md">
+                    <p className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                       {searchQuery ? 'Search Results' : 'Quick Access Navigation'}
                     </p>
                     <div className="space-y-1">
                       {filteredResults.length === 0 ? (
-                        <div className="p-3 text-center text-xs text-slate-400">
+                        <div className="p-3 text-center text-xs text-muted-foreground">
                           No matching tools found. Press Enter to search job listings.
                         </div>
                       ) : (
@@ -247,17 +252,17 @@ export function PageShell({
                               key={item.href}
                               href={item.href}
                               onClick={() => setSearchOpen(false)}
-                              className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-indigo-400 transition-colors"
+                              className="flex items-center justify-between rounded-[var(--radius)] px-3 py-2 text-xs font-medium text-foreground/80 hover:bg-primary/10 hover:text-primary transition-colors"
                             >
                               <div className="flex items-center gap-2.5">
-                                <Icon className="h-4 w-4 text-slate-400" />
+                                <Icon className="h-4 w-4 text-muted-foreground" />
                                 <span>{item.label}</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold text-slate-500 dark:bg-slate-800">
+                                <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground">
                                   {item.type}
                                 </span>
-                                <ArrowRight className="h-3 w-3 text-slate-400" />
+                                <ArrowRight className="h-3 w-3 text-muted-foreground" />
                               </div>
                             </Link>
                           );
@@ -271,8 +276,8 @@ export function PageShell({
 
             {/* Header Right Actions & Profile */}
             <div className="flex items-center gap-3 shrink-0">
-              <span className="hidden md:inline-flex items-center text-xs font-bold text-slate-700 dark:text-slate-200">
-                Welcome, <span className="text-indigo-600 dark:text-indigo-400 ml-1 font-extrabold">{username}</span> 👋
+              <span className="hidden md:inline-flex items-center text-xs font-bold text-foreground/90">
+                Welcome, <span className="text-primary ml-1 font-extrabold">{username}</span> 👋
               </span>
 
               {/* Role Pill Badge */}
@@ -286,25 +291,28 @@ export function PageShell({
               {/* User Avatar Profile Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 rounded-full p-0.5 ring-offset-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                    <Avatar className="h-9 w-9 border border-slate-200 dark:border-slate-700">
-                      <AvatarFallback className="bg-gradient-to-tr from-indigo-600 to-indigo-500 text-xs font-bold text-white">
+                  <button className="flex items-center gap-2 rounded-full p-0.5 ring-offset-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                    <Avatar className="h-9 w-9 border border-border">
+                      <AvatarFallback
+                        className="text-xs font-bold text-primary-foreground"
+                        style={{ background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))' }}
+                      >
                         {initials}
                       </AvatarFallback>
                     </Avatar>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                <DropdownMenuContent align="end" className="w-56 rounded-[var(--radius)]">
                   <DropdownMenuLabel className="font-normal p-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold leading-none text-slate-900 dark:text-white">
+                      <p className="text-sm font-semibold leading-none text-foreground">
                         {username}
                       </p>
                       <span className={`rounded border px-1.5 py-0.2 text-[9px] font-bold ${roleBadge.color}`}>
                         {roleBadge.label}
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {user?.email ?? 'komal.dharma@applyai.com'}
                     </p>
                   </DropdownMenuLabel>
@@ -357,14 +365,14 @@ export function PageShell({
           </header>
 
           {/* Main Body Content Container - Exclusive Scroll Container */}
-          <main className="flex-1 h-full overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 pb-safe w-full space-y-6">
+          <main className={`flex-1 h-full overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 pb-safe w-full space-y-6 bg-background ${portalTexture}`}>
             <div className="animate-fade-in-up flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl text-slate-900 dark:text-white">
+                <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl text-foreground">
                   {title}
                 </h1>
                 {subtitle && (
-                  <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+                  <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
                     {subtitle}
                   </p>
                 )}
